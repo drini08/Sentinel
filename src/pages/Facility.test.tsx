@@ -1,0 +1,76 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { FacilityApi, FacilitySnapshot } from "../facility/types";
+import { Facility } from "./Facility";
+
+vi.mock("../facility/FacilityScene", () => ({
+  FacilityScene: ({ snapshot, onSelect }: { snapshot: FacilitySnapshot; onSelect(id: string): void }) => (
+    <div aria-label="3D facility">
+      {snapshot.assets.map((asset) => (
+        <button key={asset.id} type="button" onClick={() => onSelect(asset.id)}>Select {asset.name}</button>
+      ))}
+    </div>
+  ),
+}));
+
+const snapshot: FacilitySnapshot = {
+  revision: 1,
+  generated_at: "2026-11-13T14:00:00Z",
+  assets: [
+    {
+      id: "reservoir-a",
+      name: "Reservoir A",
+      asset_type: "reservoir",
+      status: "operational",
+      security_status: "secure",
+      position: [4.2, 1.2, -4],
+      metrics: { level_percent: 72, capacity_ml: 8.5, inflow_m3s: 2.4, outflow_m3s: 2.1 },
+      supported_commands: ["isolate", "set_target"],
+    },
+  ],
+  connections: [],
+};
+
+function createApi(): FacilityApi {
+  return {
+    getSnapshot: vi.fn().mockResolvedValue(snapshot),
+    executeCommand: vi.fn().mockResolvedValue({
+      applied: true,
+      asset: { ...snapshot.assets[0], status: "isolated", metrics: { ...snapshot.assets[0].metrics, outflow_m3s: 0 } },
+      decision: { allowed: true, reason: "Request permitted" },
+    }),
+    reset: vi.fn().mockResolvedValue(snapshot),
+    runScenario: vi.fn().mockResolvedValue({
+      scenario: "compromised-operator",
+      attack: { applied: false, asset: snapshot.assets[0], decision: { allowed: false, response_status: 403 } },
+      legitimate: { applied: true, asset: snapshot.assets[0], decision: { allowed: true, response_status: 200 } },
+      continuity_verified: true,
+      steps: [],
+    }),
+  };
+}
+
+describe("Facility page", () => {
+  it("selects a reservoir and submits a backend-backed isolate command", async () => {
+    const api = createApi();
+    render(<Facility api={api} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select Reservoir A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Isolate reservoir" }));
+
+    await waitFor(() => expect(api.executeCommand).toHaveBeenCalledWith(
+      "reservoir-a",
+      expect.objectContaining({ command: { action: "isolate", value: true } }),
+    ));
+    expect(await screen.findByText("Command applied")).toBeInTheDocument();
+  });
+
+  it("runs the compromised operator demonstration and reports continuity", async () => {
+    const api = createApi();
+    render(<Facility api={api} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Run compromised operator" }));
+
+    expect(await screen.findByText("Attack contained. Legitimate operations continued.")).toBeInTheDocument();
+  });
+});

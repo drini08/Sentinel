@@ -4,6 +4,7 @@ import { Brand } from "./Brand";
 
 const navigation = [
   ["Overview", "/"],
+  ["Facility", "/facility"],
   ["Incidents", "/incidents"],
   ["Services", "/services"],
   ["Policies", "/policies"],

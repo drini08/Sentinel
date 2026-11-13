@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { Overview } from "./pages/Overview";
@@ -8,12 +9,15 @@ import { Logs } from "./pages/Logs";
 import { Lab } from "./pages/Lab";
 import { Settings } from "./pages/Settings";
 
+const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
+
 export function App() {
   return (
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
         <Route path="incidents" element={<Incidents />} />
+        <Route path="facility" element={<Suspense fallback={<div className="facility-route-loading">Loading digital twin…</div>}><Facility /></Suspense>} />
         <Route path="services" element={<Services />} />
         <Route path="policies" element={<Policies />} />
         <Route path="logs" element={<Logs />} />
