@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from ..models import StrictModel, utc_now
+from ..models import GatewayDecision, SimulationStep, StrictModel, utc_now
 
 
 AssetType = Literal[
@@ -53,3 +53,29 @@ class FacilitySnapshot(StrictModel):
 class AssetCommand(StrictModel):
     action: CommandAction
     value: str | float | bool | None = None
+
+
+class OperatorSession(StrictModel):
+    session_id: str
+    user_id: str
+    source_ip: str
+    device_id: str
+
+
+class FacilityCommandRequest(StrictModel):
+    command: AssetCommand
+    session: OperatorSession
+
+
+class FacilityCommandResult(StrictModel):
+    applied: bool
+    asset: FacilityAsset
+    decision: GatewayDecision
+
+
+class FacilityScenarioResult(StrictModel):
+    scenario: str = "compromised-operator"
+    attack: FacilityCommandResult
+    legitimate: FacilityCommandResult
+    continuity_verified: bool
+    steps: list[SimulationStep]

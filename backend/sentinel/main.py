@@ -3,10 +3,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models import GatewayDecision, Incident, RequestEvent, SimulationResult
+from .facility.engine import FacilityAssetNotFound, FacilityEngine, InvalidFacilityCommand, UnsupportedFacilityCommand
+from .facility.models import FacilityCommandRequest, FacilityCommandResult, FacilityScenarioResult, FacilitySnapshot
+from .facility.service import FacilityService
 from .security import SecurityService
 from .simulation import run_compromised_session_scenario
 from .store import EvidenceStore
@@ -29,6 +32,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             "http://localhost:4173",
             "http://127.0.0.1:5173",
             "http://localhost:5173",
+            "http://127.0.0.1:5174",
+            "http://localhost:5174",
         ],
         allow_credentials=True,
         allow_methods=["*"],
@@ -36,6 +41,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     application.state.store = store
     application.state.security = security
+    facility = FacilityService(FacilityEngine(), security)
+    application.state.facility = facility
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
@@ -68,6 +75,43 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     async def run_simulation() -> SimulationResult:
         return run_compromised_session_scenario(security)
+
+    @application.get(
+        "/api/v1/facility/snapshot",
+        response_model=FacilitySnapshot,
+        tags=["facility"],
+    )
+    async def facility_snapshot() -> FacilitySnapshot:
+        return facility.engine.snapshot()
+
+    @application.post(
+        "/api/v1/facility/assets/{asset_id}/commands",
+        response_model=FacilityCommandResult,
+        tags=["facility"],
+    )
+    async def facility_command(asset_id: str, request: FacilityCommandRequest) -> FacilityCommandResult:
+        try:
+            return facility.execute(asset_id, request)
+        except FacilityAssetNotFound as error:
+            raise HTTPException(status_code=404, detail=f"Unknown facility asset: {asset_id}") from error
+        except (UnsupportedFacilityCommand, InvalidFacilityCommand) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @application.post(
+        "/api/v1/facility/reset",
+        response_model=FacilitySnapshot,
+        tags=["facility"],
+    )
+    async def reset_facility() -> FacilitySnapshot:
+        return facility.engine.reset()
+
+    @application.post(
+        "/api/v1/facility/scenarios/compromised-operator",
+        response_model=FacilityScenarioResult,
+        tags=["facility"],
+    )
+    async def compromised_operator_scenario() -> FacilityScenarioResult:
+        return facility.run_compromised_operator()
 
     return application
 

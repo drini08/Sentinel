@@ -51,6 +51,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SimulationResult"
+  /api/v1/facility/snapshot:
+    get:
+      operationId: getFacilitySnapshot
+      summary: Read the authoritative water-facility state and topology.
+      responses:
+        "200":
+          description: Current facility snapshot.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacilitySnapshot" }
+  /api/v1/facility/assets/{asset_id}/commands:
+    post:
+      operationId: executeFacilityCommand
+      summary: Evaluate and conditionally apply an operator command.
+      parameters:
+        - in: path
+          name: asset_id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FacilityCommandRequest" }
+      responses:
+        "200":
+          description: SENTINEL decision and resulting authoritative asset state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacilityCommandResult" }
+        "404": { description: Unknown facility asset. }
+        "422": { description: Unsupported command or invalid command value. }
+  /api/v1/facility/reset:
+    post:
+      operationId: resetFacility
+      responses:
+        "200":
+          description: Deterministic baseline facility snapshot.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacilitySnapshot" }
+  /api/v1/facility/scenarios/compromised-operator:
+    post:
+      operationId: runCompromisedOperatorScenario
+      responses:
+        "200":
+          description: Blocked attack plus successful legitimate continuity command.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacilityScenarioResult" }
 components:
   schemas:
     RequestEvent:
@@ -138,6 +188,97 @@ components:
         continuity_verified: { type: boolean }
         incident: { $ref: "#/components/schemas/Incident" }
         containment: { $ref: "#/components/schemas/ContainmentAction" }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [sequence, event, outcome]
+            properties:
+              sequence: { type: integer }
+              event: { type: string }
+              outcome: { type: string }
+    FacilityAsset:
+      type: object
+      additionalProperties: false
+      required: [id, name, asset_type, status, security_status, position, metrics, supported_commands]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        asset_type: { type: string }
+        status: { type: string }
+        security_status: { type: string }
+        position:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: { type: number }
+        metrics: { type: object, additionalProperties: true }
+        supported_commands:
+          type: array
+          items: { type: string }
+    FacilityConnection:
+      type: object
+      additionalProperties: false
+      required: [id, source, target, flow_m3s, active]
+      properties:
+        id: { type: string }
+        source: { type: string }
+        target: { type: string }
+        flow_m3s: { type: number, minimum: 0 }
+        active: { type: boolean }
+    FacilitySnapshot:
+      type: object
+      additionalProperties: false
+      required: [revision, generated_at, assets, connections]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        generated_at: { type: string, format: date-time }
+        assets:
+          type: array
+          items: { $ref: "#/components/schemas/FacilityAsset" }
+        connections:
+          type: array
+          items: { $ref: "#/components/schemas/FacilityConnection" }
+    OperatorSession:
+      type: object
+      additionalProperties: false
+      required: [session_id, user_id, source_ip, device_id]
+      properties:
+        session_id: { type: string }
+        user_id: { type: string }
+        source_ip: { type: string }
+        device_id: { type: string }
+    AssetCommand:
+      type: object
+      additionalProperties: false
+      required: [action]
+      properties:
+        action: { type: string, enum: [open, close, start, stop, set_mode, set_target, isolate] }
+        value: {}
+    FacilityCommandRequest:
+      type: object
+      additionalProperties: false
+      required: [command, session]
+      properties:
+        command: { $ref: "#/components/schemas/AssetCommand" }
+        session: { $ref: "#/components/schemas/OperatorSession" }
+    FacilityCommandResult:
+      type: object
+      additionalProperties: false
+      required: [applied, asset, decision]
+      properties:
+        applied: { type: boolean }
+        asset: { $ref: "#/components/schemas/FacilityAsset" }
+        decision: { $ref: "#/components/schemas/GatewayDecision" }
+    FacilityScenarioResult:
+      type: object
+      additionalProperties: false
+      required: [scenario, attack, legitimate, continuity_verified, steps]
+      properties:
+        scenario: { type: string, const: compromised-operator }
+        attack: { $ref: "#/components/schemas/FacilityCommandResult" }
+        legitimate: { $ref: "#/components/schemas/FacilityCommandResult" }
+        continuity_verified: { type: boolean }
         steps:
           type: array
           items:
