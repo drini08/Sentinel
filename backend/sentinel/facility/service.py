@@ -21,7 +21,10 @@ class FacilityService:
 
     def execute(self, asset_id: str, request: FacilityCommandRequest) -> FacilityCommandResult:
         decision = self.security.evaluate(self._to_request_event(asset_id, request))
-        asset = self.engine.apply(asset_id, request.command) if decision.allowed else self.engine.get(asset_id)
+        if decision.allowed:
+            asset = self.engine.apply(asset_id, request.command)
+        else:
+            asset = self.engine.set_security_status(asset_id, "contained" if decision.containment else "blocked")
         return FacilityCommandResult(applied=decision.allowed, asset=asset, decision=decision)
 
     def run_compromised_operator(self) -> FacilityScenarioResult:

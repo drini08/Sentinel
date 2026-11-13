@@ -55,6 +55,14 @@ class FacilityEngine:
         self._synchronize_connections(asset)
         return asset.model_copy(deep=True)
 
+    def set_security_status(self, asset_id: str, status: str) -> FacilityAsset:
+        asset = self._assets.get(asset_id)
+        if asset is None:
+            raise FacilityAssetNotFound(asset_id)
+        asset.security_status = status
+        self._revision += 1
+        return asset.model_copy(deep=True)
+
     def reset(self) -> FacilitySnapshot:
         self._assets = build_facility_assets()
         self._connections = build_facility_connections()
