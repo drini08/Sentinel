@@ -1,6 +1,6 @@
 # SCADA Digital Twin Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a cinematic, interactive 3D water facility whose telemetry and controls are owned by the FastAPI backend and protected by SENTINEL.
 
@@ -38,7 +38,7 @@
 - Produces: `FacilityEngine.reset() -> FacilitySnapshot`
 - Produces: `build_facility_assets() -> dict[str, FacilityAsset]`
 
-- [ ] **Step 1: Write failing topology and engine tests**
+- [x] **Step 1: Write failing topology and engine tests**
 
 ```python
 def test_topology_contains_complete_small_water_facility() -> None:
@@ -56,12 +56,12 @@ def test_reservoir_isolation_changes_flow_without_invalid_levels() -> None:
     assert 0 <= changed.metrics["level_percent"] <= 100
 ```
 
-- [ ] **Step 2: Run the tests and verify import failures**
+- [x] **Step 2: Run the tests and verify import failures**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests\test_facility_engine.py -q`
 Expected: FAIL because `sentinel.facility` does not exist.
 
-- [ ] **Step 3: Implement strict models, fixed topology, command validation, state cloning, and reset**
+- [x] **Step 3: Implement strict models, fixed topology, command validation, state cloning, and reset**
 
 ```python
 class AssetCommand(StrictModel):
@@ -91,12 +91,12 @@ class FacilityEngine:
         return self.snapshot()
 ```
 
-- [ ] **Step 4: Run engine tests**
+- [x] **Step 4: Run engine tests**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests\test_facility_engine.py -q`
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit the domain slice**
+- [x] **Step 5: Commit the domain slice**
 
 ```powershell
 git add backend/sentinel/facility backend/tests/test_facility_engine.py
@@ -118,7 +118,7 @@ git commit -m "feat(backend): add deterministic facility engine"
 - Produces: `FacilityService.run_compromised_operator() -> FacilityScenarioResult`
 - Produces endpoints under `/api/v1/facility`
 
-- [ ] **Step 1: Write failing API tests for snapshot, allowed command, blocked command, reset, and continuity**
+- [x] **Step 1: Write failing API tests for snapshot, allowed command, blocked command, reset, and continuity**
 
 ```python
 def test_compromised_command_is_blocked_without_mutating_facility() -> None:
@@ -131,12 +131,12 @@ def test_compromised_command_is_blocked_without_mutating_facility() -> None:
     assert asset(before, "pump-station")["status"] == asset(after, "pump-station")["status"]
 ```
 
-- [ ] **Step 2: Run API tests and verify missing routes**
+- [x] **Step 2: Run API tests and verify missing routes**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests\test_facility_api.py -q`
 Expected: FAIL with `404` responses.
 
-- [ ] **Step 3: Implement the command envelope and security translation**
+- [x] **Step 3: Implement the command envelope and security translation**
 
 ```python
 class FacilityCommandRequest(StrictModel):
@@ -154,19 +154,19 @@ def execute(self, asset_id: str, request: FacilityCommandRequest) -> FacilityCom
     return FacilityCommandResult(applied=decision.allowed, asset=asset, decision=decision)
 ```
 
-- [ ] **Step 4: Register facility services once in `create_app` and expose four endpoints**
+- [x] **Step 4: Register facility services once in `create_app` and expose four endpoints**
 
 ```python
 application.state.facility = FacilityService(FacilityEngine(), security)
 # GET snapshot, POST command, POST reset, POST compromised-operator
 ```
 
-- [ ] **Step 5: Update the OpenAPI contract and run all backend tests**
+- [x] **Step 5: Update the OpenAPI contract and run all backend tests**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests -q`
 Expected: all backend tests pass.
 
-- [ ] **Step 6: Commit the protected API slice**
+- [x] **Step 6: Commit the protected API slice**
 
 ```powershell
 git add backend contracts/sentinel-api.yaml
@@ -190,12 +190,12 @@ git commit -m "feat(backend): expose protected facility API"
 - Produces: `facilityApi.getSnapshot`, `facilityApi.executeCommand`, `facilityApi.reset`, `facilityApi.runScenario`
 - Produces: `useFacility()` with `snapshot`, `selectedAsset`, `selectAsset`, `executeCommand`, `runScenario`, `isStale`, and `error`
 
-- [ ] **Step 1: Add Vitest, jsdom, Testing Library, Three.js, React Three Fiber, Drei, and postprocessing dependencies**
+- [x] **Step 1: Add Vitest, jsdom, Testing Library, Three.js, React Three Fiber, Drei, and postprocessing dependencies**
 
 Run: `npm.cmd install three @react-three/fiber @react-three/drei @react-three/postprocessing postprocessing && npm.cmd install -D vitest jsdom @testing-library/react @testing-library/jest-dom @types/three`
 Expected: lockfile updates without audit vulnerabilities.
 
-- [ ] **Step 2: Write failing API mapping and non-overlapping polling tests**
+- [x] **Step 2: Write failing API mapping and non-overlapping polling tests**
 
 ```tsx
 it("keeps the last snapshot and marks it stale when refresh fails", async () => {
@@ -208,12 +208,12 @@ it("keeps the last snapshot and marks it stale when refresh fails", async () => 
 });
 ```
 
-- [ ] **Step 3: Run tests and verify missing modules**
+- [x] **Step 3: Run tests and verify missing modules**
 
 Run: `npm.cmd test -- --run src/facility`
 Expected: FAIL because facility modules do not exist.
 
-- [ ] **Step 4: Implement typed fetch helpers and the polling hook**
+- [x] **Step 4: Implement typed fetch helpers and the polling hook**
 
 ```ts
 export const facilityApi = {
@@ -223,12 +223,12 @@ export const facilityApi = {
 };
 ```
 
-- [ ] **Step 5: Run frontend data tests**
+- [x] **Step 5: Run frontend data tests**
 
 Run: `npm.cmd test -- --run src/facility`
 Expected: all data-layer tests pass.
 
-- [ ] **Step 6: Commit the frontend data slice**
+- [x] **Step 6: Commit the frontend data slice**
 
 ```powershell
 git add package.json package-lock.json vite.config.ts src/facility src/test
@@ -249,7 +249,7 @@ git commit -m "feat(web): add facility data client"
 - Consumes: `FacilitySnapshot`, selected asset id, and `onSelect(assetId | null)`
 - Produces: lazy-loadable `<FacilityScene />` with constrained camera and code-native geometry
 
-- [ ] **Step 1: Write failing scene contract tests with the WebGL canvas mocked**
+- [x] **Step 1: Write failing scene contract tests with the WebGL canvas mocked**
 
 ```tsx
 it("renders every backend asset as a selectable scene object", () => {
@@ -258,12 +258,12 @@ it("renders every backend asset as a selectable scene object", () => {
 });
 ```
 
-- [ ] **Step 2: Run the scene tests and verify missing components**
+- [x] **Step 2: Run the scene tests and verify missing components**
 
 Run: `npm.cmd test -- --run src/facility/scene.test.tsx`
 Expected: FAIL because the scene components do not exist.
 
-- [ ] **Step 3: Implement reservoirs, treatment assets, pumps, valves, buildings, and animated pipes as focused components**
+- [x] **Step 3: Implement reservoirs, treatment assets, pumps, valves, buildings, and animated pipes as focused components**
 
 ```tsx
 <group position={asset.position} onClick={(event) => { event.stopPropagation(); onSelect(asset.id); }}>
@@ -272,7 +272,7 @@ Expected: FAIL because the scene components do not exist.
 </group>
 ```
 
-- [ ] **Step 4: Implement the canvas, lighting, environment, floor grid, bloom, constrained orbit controls, reduced motion, and DPR cap**
+- [x] **Step 4: Implement the canvas, lighting, environment, floor grid, bloom, constrained orbit controls, reduced motion, and DPR cap**
 
 ```tsx
 <Canvas dpr={[1, 1.5]} camera={{ position: [15, 13, 19], fov: 42 }} shadows>
@@ -286,12 +286,12 @@ Expected: FAIL because the scene components do not exist.
 </Canvas>
 ```
 
-- [ ] **Step 5: Run scene tests and production build**
+- [x] **Step 5: Run scene tests and production build**
 
 Run: `npm.cmd test -- --run src/facility/scene.test.tsx; npm.cmd run build`
 Expected: tests and TypeScript/Vite build pass.
 
-- [ ] **Step 6: Commit the 3D scene**
+- [x] **Step 6: Commit the 3D scene**
 
 ```powershell
 git add src/facility
@@ -313,7 +313,7 @@ git commit -m "feat(web): render cinematic facility twin"
 - Consumes: `useFacility`, `FacilityScene`, and facility API command types
 - Produces: `/facility` route and primary navigation entry
 
-- [ ] **Step 1: Write failing interaction tests for selection, command controls, blocked feedback, stale state, and scenario launch**
+- [x] **Step 1: Write failing interaction tests for selection, command controls, blocked feedback, stale state, and scenario launch**
 
 ```tsx
 it("opens controls for a selected reservoir and submits an isolate command", async () => {
@@ -326,12 +326,12 @@ it("opens controls for a selected reservoir and submits an isolate command", asy
 });
 ```
 
-- [ ] **Step 2: Run the page tests and verify failures**
+- [x] **Step 2: Run the page tests and verify failures**
 
 Run: `npm.cmd test -- --run src/pages/Facility.test.tsx`
 Expected: FAIL because the page and controls do not exist.
 
-- [ ] **Step 3: Implement the status strip, contextual drawer, asset controls, command feedback, reset, and scenario action**
+- [x] **Step 3: Implement the status strip, contextual drawer, asset controls, command feedback, reset, and scenario action**
 
 ```tsx
 <AssetDrawer
@@ -341,19 +341,19 @@ Expected: FAIL because the page and controls do not exist.
 />
 ```
 
-- [ ] **Step 4: Add lazy routing, navigation, responsive layout, and reduced-motion styles**
+- [x] **Step 4: Add lazy routing, navigation, responsive layout, and reduced-motion styles**
 
 ```tsx
 const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
 <Route path="facility" element={<Suspense fallback={<FacilityLoading />}><Facility /></Suspense>} />
 ```
 
-- [ ] **Step 5: Run page tests, all frontend tests, and the build**
+- [x] **Step 5: Run page tests, all frontend tests, and the build**
 
 Run: `npm.cmd test -- --run; npm.cmd run build`
 Expected: all tests and build pass.
 
-- [ ] **Step 6: Commit the integrated Facility page**
+- [x] **Step 6: Commit the integrated Facility page**
 
 ```powershell
 git add src
@@ -373,7 +373,7 @@ git commit -m "feat(web): add interactive facility command center"
 - Consumes: the facility scenario endpoint and existing incident/activity endpoints
 - Produces: one repeatable demonstration shared by Lab and Facility
 
-- [ ] **Step 1: Write a failing full demonstration test**
+- [x] **Step 1: Write a failing full demonstration test**
 
 ```python
 def test_demo_changes_normal_state_blocks_attack_and_preserves_continuity() -> None:
@@ -387,19 +387,19 @@ def test_demo_changes_normal_state_blocks_attack_and_preserves_continuity() -> N
     assert len(incidents) == 1
 ```
 
-- [ ] **Step 2: Run the demo test and verify the missing integration behavior**
+- [x] **Step 2: Run the demo test and verify the missing integration behavior**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests\test_facility_demo.py -q`
 Expected: FAIL until the scenario and command helpers expose the complete flow.
 
-- [ ] **Step 3: Complete the shared scenario behavior and replace Lab's timer-only simulation with the real endpoint**
+- [x] **Step 3: Complete the shared scenario behavior and replace Lab's timer-only simulation with the real endpoint**
 
 ```tsx
 const result = await facilityApi.runScenario();
 setSteps(result.steps);
 ```
 
-- [ ] **Step 4: Document setup, both servers, facility controls, and the stakeholder demo sequence**
+- [x] **Step 4: Document setup, both servers, facility controls, and the stakeholder demo sequence**
 
 ```text
 Terminal 1: .venv\Scripts\python.exe -m uvicorn sentinel.main:app --app-dir backend --reload --port 8000
@@ -407,19 +407,19 @@ Terminal 2: npm.cmd run dev
 Open: http://127.0.0.1:5173/facility
 ```
 
-- [ ] **Step 5: Run complete verification**
+- [x] **Step 5: Run complete verification**
 
 Run: `.venv\Scripts\python.exe -m pytest backend\tests -q; npm.cmd test -- --run; npm.cmd run build; git diff --check; git status --short`
 Expected: all tests pass, build succeeds, no whitespace errors, and only the plan checkbox updates remain.
 
-- [ ] **Step 6: Mark plan tasks complete and commit**
+- [x] **Step 6: Mark plan tasks complete and commit**
 
 ```powershell
 git add README.md backend/README.md backend/tests src/pages/Lab.tsx docs/superpowers/plans/2026-11-13-scada-digital-twin.md
 git commit -m "docs: complete SCADA digital twin demo"
 ```
 
-- [ ] **Step 7: Push verified `main`**
+- [x] **Step 7: Push verified `main`**
 
 Run: `git push origin main`
 Expected: GitHub `main` advances to the final verified commit.
