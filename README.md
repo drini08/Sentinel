@@ -12,3 +12,7 @@ npm run dev
 ```
 
 Create a production build with `npm run build`.
+
+## Security core
+
+The FastAPI service in `backend/` provides the gateway event contract, deterministic explainable risk scoring, SQLite evidence storage, selective session containment, and the compromised-session simulation. See `backend/README.md` for setup and verification commands.

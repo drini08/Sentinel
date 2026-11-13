@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: SENTINEL Security Contract
+  version: 0.1.0
+  description: Shared contract for request evaluation, explainable risk, selective containment, and incident evidence.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Security core is available.
+  /api/v1/gateway/evaluate:
+    post:
+      operationId: evaluateRequest
+      summary: Evaluate a protected request before forwarding it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestEvent"
+      responses:
+        "200":
+          description: Policy decision. `response_status` describes the simulated gateway outcome.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GatewayDecision"
+  /api/v1/incidents:
+    get:
+      operationId: listIncidents
+      responses:
+        "200":
+          description: Retained incident evidence, newest first.
+  /api/v1/activity:
+    get:
+      operationId: listActivity
+      responses:
+        "200":
+          description: Retained request events, newest first.
+  /api/v1/simulations/compromised-session:
+    post:
+      operationId: runCompromisedSessionSimulation
+      responses:
+        "200":
+          description: Completed attack, containment, and continuity-verification result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimulationResult"
+components:
+  schemas:
+    RequestEvent:
+      type: object
+      additionalProperties: false
+      required: [session_id, user_id, service_id, method, path, source_ip, device_id]
+      properties:
+        event_id: { type: string }
+        timestamp: { type: string, format: date-time }
+        session_id: { type: string }
+        user_id: { type: string }
+        service_id: { type: string }
+        method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE] }
+        path: { type: string }
+        source_ip: { type: string }
+        device_id: { type: string }
+        authenticated: { type: boolean, default: true }
+        attributes: { type: object, additionalProperties: true }
+    RiskSignal:
+      type: object
+      required: [code, label, score, evidence]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        evidence: { type: string }
+    RiskAssessment:
+      type: object
+      required: [assessment_id, event_id, created_at, risk_score, level, signals, recommendation]
+      properties:
+        assessment_id: { type: string }
+        event_id: { type: string }
+        created_at: { type: string, format: date-time }
+        risk_score: { type: integer, minimum: 0, maximum: 100 }
+        level: { type: string, enum: [low, medium, high, critical] }
+        signals:
+          type: array
+          items: { $ref: "#/components/schemas/RiskSignal" }
+        recommendation: { type: string }
+    Incident:
+      type: object
+      required: [incident_id, created_at, title, service_id, session_id, status, risk, summary]
+      properties:
+        incident_id: { type: string }
+        created_at: { type: string, format: date-time }
+        title: { type: string }
+        service_id: { type: string }
+        session_id: { type: string }
+        status: { type: string, enum: [open, contained, resolved] }
+        risk: { $ref: "#/components/schemas/RiskAssessment" }
+        summary: { type: string }
+    ContainmentAction:
+      type: object
+      required: [action_id, created_at, incident_id, session_id, action, policy, status, reversible]
+      properties:
+        action_id: { type: string }
+        created_at: { type: string, format: date-time }
+        incident_id: { type: string }
+        session_id: { type: string }
+        action: { type: string, enum: [restrict_session] }
+        policy: { type: string }
+        status: { type: string, enum: [enforced] }
+        reversible: { type: boolean }
+    GatewayDecision:
+      type: object
+      required: [event_id, allowed, response_status, reason]
+      properties:
+        event_id: { type: string }
+        allowed: { type: boolean }
+        response_status: { type: integer }
+        reason: { type: string }
+        assessment: { oneOf: [{ $ref: "#/components/schemas/RiskAssessment" }, { type: "null" }] }
+        incident: { oneOf: [{ $ref: "#/components/schemas/Incident" }, { type: "null" }] }
+        containment: { oneOf: [{ $ref: "#/components/schemas/ContainmentAction" }, { type: "null" }] }
+    SimulationResult:
+      type: object
+      required: [scenario, completed_at, attacker_session_id, legitimate_session_id, attacker_response_status, legitimate_response_status, continuity_verified, incident, containment, steps]
+      properties:
+        scenario: { type: string }
+        completed_at: { type: string, format: date-time }
+        attacker_session_id: { type: string }
+        legitimate_session_id: { type: string }
+        attacker_response_status: { type: integer, const: 403 }
+        legitimate_response_status: { type: integer, const: 200 }
+        continuity_verified: { type: boolean }
+        incident: { $ref: "#/components/schemas/Incident" }
+        containment: { $ref: "#/components/schemas/ContainmentAction" }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [sequence, event, outcome]
+            properties:
+              sequence: { type: integer }
+              event: { type: string }
+              outcome: { type: string }
