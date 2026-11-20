@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import yaml
+
 from sentinel.main import create_app
 from sentinel.models import RequestEvent
 from sentinel.security import SecurityService
@@ -56,3 +60,11 @@ def test_fastapi_exposes_the_shared_contract() -> None:
     assert contract["info"]["title"] == "SENTINEL Security Core"
     assert "/api/v1/gateway/evaluate" in contract["paths"]
     assert "/api/v1/simulations/compromised-session" in contract["paths"]
+
+
+def test_checked_in_contract_covers_every_runtime_path() -> None:
+    contract_path = Path(__file__).parents[2] / "contracts" / "sentinel-api.yaml"
+    checked_in = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
+    runtime = create_app(":memory:").openapi()
+
+    assert set(checked_in["paths"]) == set(runtime["paths"])

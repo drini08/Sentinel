@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const API_BASE = (import.meta.env.VITE_SENTINEL_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
 
@@ -11,9 +11,10 @@ export type ApiIncident = {
   incident_id: string; created_at: string; title: string; service_id: string; session_id: string;
   status: "active" | "contained" | "investigating" | "resolved"; risk: Detection; summary: string;
 };
+export type IncidentEvidence = { request_blocked: boolean; session_restricted: boolean; continuity_verified: boolean };
 export type FirewallRule = {
   rule_id: string; target_type: "ip" | "endpoint" | "ip_endpoint"; target_value: string;
-  action: "block" | "rate_limit"; justification: string; created_at: string; expires_at: string;
+  action: "block"; justification: string; created_at: string; expires_at: string;
   status: "active" | "expired" | "removed" | "rolled_back"; incident_id?: string; created_by: string;
 };
 export type Session = { session_id: string; user_id: string; trusted_source_ip: string; trusted_device_id: string; status: "active" | "restricted" | "revoked" };
@@ -41,12 +42,17 @@ export function usePolling<T>(path: string, fallback: T, interval = 5000) {
   const [data, setData] = useState<T>(fallback);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const generation = useRef(0);
   const refresh = useCallback(async () => {
+    const requestGeneration = ++generation.current;
     try {
-      setData(await request<T>(path));
+      const next = await request<T>(path);
+      if (requestGeneration !== generation.current) return;
+      setData(next);
       setConnected(true);
       setError(null);
     } catch (reason) {
+      if (requestGeneration !== generation.current) return;
       setConnected(false);
       setError(reason instanceof Error ? reason.message : "API unavailable");
     }
@@ -54,7 +60,7 @@ export function usePolling<T>(path: string, fallback: T, interval = 5000) {
   useEffect(() => {
     void refresh();
     const timer = window.setInterval(() => void refresh(), interval);
-    return () => window.clearInterval(timer);
+    return () => { window.clearInterval(timer); generation.current += 1; };
   }, [interval, refresh]);
   return { data, connected, error, refresh };
 }
@@ -71,6 +77,7 @@ export const sentinelApi = {
     request<ApiIncident>(`/api/v1/incidents/${incidentId}`, { method: "PATCH", headers: operatorHeaders, body: JSON.stringify({ status }) }),
   updatePolicy: (policyId: string, changes: Partial<Policy>) =>
     request<Policy>(`/api/v1/policies/${policyId}`, { method: "PATCH", headers: operatorHeaders, body: JSON.stringify(changes) }),
-  runRollbackDemo: () => request<FirewallRule>("/api/v1/simulations/rollback", { method: "POST" }),
+  getIncidentEvidence: (incidentId: string) => request<IncidentEvidence>(`/api/v1/incidents/${incidentId}/evidence`),
+  runRollbackDemo: () => request<FirewallRule>("/api/v1/simulations/rollback", { method: "POST", headers: operatorHeaders }),
   runHealthCheck: () => request<HealthCheck>("/api/v1/health-checks/run", { method: "POST", headers: operatorHeaders }),
 };

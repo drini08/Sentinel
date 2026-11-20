@@ -87,6 +87,12 @@ class Incident(StrictModel):
     summary: str
 
 
+class IncidentEvidence(StrictModel):
+    request_blocked: bool
+    session_restricted: bool
+    continuity_verified: bool
+
+
 class ContainmentAction(StrictModel):
     action_id: str = Field(default_factory=lambda: f"act_{uuid4().hex[:16]}")
     created_at: datetime = Field(default_factory=utc_now)
@@ -100,7 +106,6 @@ class ContainmentAction(StrictModel):
 
 class FirewallAction(StrEnum):
     BLOCK = "block"
-    RATE_LIMIT = "rate_limit"
 
 
 class FirewallRuleStatus(StrEnum):
@@ -121,7 +126,6 @@ class FirewallRule(StrictModel):
     status: FirewallRuleStatus = FirewallRuleStatus.ACTIVE
     incident_id: str | None = None
     created_by: str = "sentinel-decision-engine"
-    rate_limit: int | None = Field(default=None, ge=1, le=10000)
 
 
 class HealthStatus(StrEnum):
@@ -186,7 +190,6 @@ class RuleCreate(StrictModel):
     justification: str = Field(min_length=8, max_length=500)
     duration_seconds: int = Field(default=900, ge=30, le=86400)
     incident_id: str | None = None
-    rate_limit: int | None = Field(default=None, ge=1, le=10000)
     simulate_continuity_failure: bool = False
 
 

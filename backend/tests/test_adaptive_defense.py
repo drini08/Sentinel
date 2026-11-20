@@ -164,3 +164,109 @@ def test_facility_control_plane_cannot_be_blocked() -> None:
 
     assert response.status_code == 422
     assert "cannot be blocked" in response.json()["detail"]
+
+
+def test_simulations_require_operator_and_preserve_existing_defense_state() -> None:
+    from sentinel.models import RuleCreate
+
+    app = TestClient(create_app(":memory:"))
+    existing = app.app.state.defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="203.0.113.77",
+        justification="Pre-existing operator defense rule.",
+    ))
+
+    denied = app.post("/api/v1/simulations/compromised-session")
+    completed = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+    repeated = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+
+    assert denied.status_code == 403
+    assert completed.status_code == 200
+    assert repeated.status_code == 200
+    assert app.app.state.store.get_firewall_rule(existing.rule_id) is not None
+    assert len(app.app.state.store.list_incidents()) == 2
+
+
+def test_rollback_simulation_requires_operator() -> None:
+    app = TestClient(create_app(":memory:"))
+
+    denied = app.post("/api/v1/simulations/rollback")
+    completed = app.post(
+        "/api/v1/simulations/rollback",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+
+    assert denied.status_code == 403
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "rolled_back"
+
+
+def test_firewall_targets_are_validated_and_normalized() -> None:
+    from sentinel.defense import DefenseService, UnsafeRule
+    from sentinel.models import RuleCreate
+    from sentinel.store import EvidenceStore
+
+    defense = DefenseService(EvidenceStore(":memory:"))
+    normalized = defense.create_rule(RuleCreate(
+        target_type="ip_endpoint",
+        target_value=" 2001:0db8::1|/telemetry/pressure ",
+        justification="Normalized scoped IPv6 restriction.",
+    ))
+
+    assert normalized.target_value == "2001:db8::1|/telemetry/pressure"
+    for target_type, target_value in (
+        ("ip", "not-an-ip"),
+        ("endpoint", "telemetry/pressure"),
+        ("ip_endpoint", "not-an-ip|/telemetry/pressure"),
+    ):
+        try:
+            defense.create_rule(RuleCreate(
+                target_type=target_type,
+                target_value=target_value,
+                justification="Malformed target rejection test.",
+            ))
+        except UnsafeRule:
+            continue
+        raise AssertionError(f"{target_type} target should be rejected")
+
+
+def test_expired_rules_are_reconciled_before_dashboard_aggregation() -> None:
+    from sentinel.models import RuleCreate, utc_now
+
+    app = TestClient(create_app(":memory:"))
+    rule = app.app.state.defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="203.0.113.78",
+        justification="Short-lived dashboard reconciliation test.",
+    ))
+    app.app.state.store.save_firewall_rule(
+        rule.model_copy(update={"expires_at": utc_now() - timedelta(seconds=1)})
+    )
+
+    dashboard = app.get("/api/v1/dashboard").json()
+
+    assert dashboard["active_rules"] == 0
+    assert app.app.state.store.get_firewall_rule(rule.rule_id).status == "expired"
+
+
+def test_incident_evidence_reports_only_persisted_outcomes() -> None:
+    app = TestClient(create_app(":memory:"))
+    result = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator"},
+    ).json()
+
+    evidence = app.get(f"/api/v1/incidents/{result['incident']['incident_id']}/evidence")
+
+    assert evidence.status_code == 200
+    assert evidence.json() == {
+        "request_blocked": True,
+        "session_restricted": True,
+        "continuity_verified": True,
+    }

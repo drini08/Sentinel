@@ -61,7 +61,10 @@ def test_compromised_command_is_blocked_without_mutating_facility() -> None:
     client = TestClient(create_app(":memory:"))
     before = client.get("/api/v1/facility/snapshot").json()
 
-    response = client.post("/api/v1/facility/scenarios/compromised-operator")
+    response = client.post(
+        "/api/v1/facility/scenarios/compromised-operator",
+        headers={"X-Operator-Role": "operator"},
+    )
     after = client.get("/api/v1/facility/snapshot").json()
 
     assert response.status_code == 200
@@ -78,7 +81,7 @@ def test_reset_restores_facility_baseline() -> None:
     client = TestClient(create_app(":memory:"))
     command(client, "reservoir-a", "isolate", True)
 
-    response = client.post("/api/v1/facility/reset")
+    response = client.post("/api/v1/facility/reset", headers={"X-Operator-Role": "operator"})
     reservoir = find_asset(response.json(), "reservoir-a")
 
     assert response.status_code == 200

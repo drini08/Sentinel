@@ -24,9 +24,12 @@ const incident = {
 };
 
 it("loads incident evidence and resolves the selected incident", async () => {
-  const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     if (init?.method === "PATCH") {
       return new Response(JSON.stringify({ ...incident, status: "resolved" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }
+    if (String(input).includes("/evidence")) {
+      return new Response(JSON.stringify({ request_blocked: true, session_restricted: true, continuity_verified: true }), { status: 200, headers: { "Content-Type": "application/json" } });
     }
     return new Response(JSON.stringify([incident]), { status: 200, headers: { "Content-Type": "application/json" } });
   });
@@ -34,11 +37,27 @@ it("loads incident evidence and resolves the selected incident", async () => {
   render(<Incidents />);
 
   expect(await screen.findAllByText("Administrative pump override anomaly")).not.toHaveLength(0);
+  expect(await screen.findByText("Continuity verified")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Resolve incident" }));
 
   await waitFor(() => expect(fetchMock.mock.calls.some(([input, init]) =>
     String(input).includes("/api/v1/incidents/inc-1") && init?.method === "PATCH",
   )).toBe(true));
+});
+
+it("does not claim containment outcomes without persisted evidence", async () => {
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    if (String(input).includes("/evidence")) {
+      return new Response(JSON.stringify({ request_blocked: true, session_restricted: false, continuity_verified: false }), { status: 200 });
+    }
+    return new Response(JSON.stringify([{ ...incident, status: "active" }]), { status: 200 });
+  });
+
+  render(<Incidents />);
+
+  expect(await screen.findByText("Request blocked")).toBeInTheDocument();
+  expect(screen.queryByText("Session restricted")).not.toBeInTheDocument();
+  expect(screen.queryByText("Continuity verified")).not.toBeInTheDocument();
 });
 
 it("keeps incident evidence visible when a status update fails", async () => {

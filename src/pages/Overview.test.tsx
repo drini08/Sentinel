@@ -35,3 +35,13 @@ it("presents a live command-center entry point with direct operational actions",
   expect(await screen.findByText("1 active incident")).toBeInTheDocument();
   expect(screen.getByText("Continuity verified")).toBeInTheDocument();
 });
+
+it("does not fabricate service or flow values while the API is offline", async () => {
+  vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+
+  render(<MemoryRouter><Overview /></MemoryRouter>);
+
+  expect(await screen.findByText("Live posture unavailable")).toBeInTheDocument();
+  expect(screen.queryByText("4 services protected")).not.toBeInTheDocument();
+  expect(screen.queryByText("41.2 m³/s uninterrupted")).not.toBeInTheDocument();
+});

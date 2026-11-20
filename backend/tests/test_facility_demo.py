@@ -10,7 +10,10 @@ def find_asset(snapshot: dict, asset_id: str) -> dict:
 def test_demo_blocks_attack_marks_security_state_and_preserves_legitimate_control() -> None:
     client = TestClient(create_app(":memory:"))
 
-    scenario = client.post("/api/v1/facility/scenarios/compromised-operator").json()
+    scenario = client.post(
+        "/api/v1/facility/scenarios/compromised-operator",
+        headers={"X-Operator-Role": "operator"},
+    ).json()
     after_attack = client.get("/api/v1/facility/snapshot").json()
     legitimate = client.post(
         "/api/v1/facility/assets/reservoir-b/commands",

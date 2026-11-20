@@ -3,19 +3,6 @@ import { DefenseNetwork } from "../components/Visuals";
 import { Eyebrow } from "../components/UI";
 import { type Dashboard, usePolling } from "../api";
 
-const dashboardFallback: Dashboard = {
-  generated_at: "",
-  protected_services: 4,
-  healthy_services: 4,
-  active_incidents: 0,
-  critical_incidents: 0,
-  active_rules: 0,
-  restricted_sessions: 0,
-  continuity_ok: true,
-  recent_incidents: [],
-  recent_audit: [],
-};
-
 const capabilities = [
   {
     number: "01",
@@ -40,8 +27,10 @@ const capabilities = [
 ];
 
 export function Overview() {
-  const dashboard = usePolling<Dashboard>("/api/v1/dashboard", dashboardFallback);
-  const incidentLabel = `${dashboard.data.active_incidents} active incident${dashboard.data.active_incidents === 1 ? "" : "s"}`;
+  const dashboard = usePolling<Dashboard | null>("/api/v1/dashboard", null);
+  const incidentLabel = dashboard.data
+    ? `${dashboard.data.active_incidents} active incident${dashboard.data.active_incidents === 1 ? "" : "s"}`
+    : null;
   return (
     <div className="animate-enter overview-v2 overview-apple">
       <section className="overview-hero">
@@ -54,10 +43,11 @@ export function Overview() {
             <Link to="/lab" className="button-secondary" aria-label="Run attack demo">Run attack demo</Link>
           </div>
           <div className="overview-proof">
-            <span>{dashboard.data.protected_services} services protected</span>
-            <span>{incidentLabel}</span>
-            <span>{dashboard.connected ? (dashboard.data.continuity_ok ? "Continuity verified" : "Continuity at risk") : "Live posture connecting"}</span>
-            <span>41.2 m³/s uninterrupted</span>
+            {dashboard.connected && dashboard.data ? <>
+              <span>{dashboard.data.protected_services} services protected</span>
+              <span>{incidentLabel}</span>
+              <span>{dashboard.data.continuity_ok ? "Continuity verified" : "Continuity at risk"}</span>
+            </> : <span>Live posture unavailable</span>}
           </div>
         </div>
         <DefenseNetwork />

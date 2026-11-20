@@ -107,11 +107,6 @@ class EvidenceStore:
     def _payload(model: object) -> str:
         return json.dumps(model.model_dump(mode="json"), separators=(",", ":"))  # type: ignore[attr-defined]
 
-    def clear(self) -> None:
-        with self._lock, self._connection:
-            for table in ("containment_actions", "incidents", "assessments", "events", "sessions", "firewall_rules", "health_checks"):
-                self._connection.execute(f"DELETE FROM {table}")
-
     def save_session(self, profile: SessionProfile) -> None:
         with self._lock, self._connection:
             self._connection.execute(
@@ -209,6 +204,13 @@ class EvidenceStore:
                 "INSERT INTO containment_actions VALUES (?, ?, ?, ?)",
                 (action.action_id, action.incident_id, action.created_at.isoformat(), self._payload(action)),
             )
+
+    def list_actions(self) -> list[ContainmentAction]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM containment_actions ORDER BY created_at DESC"
+            ).fetchall()
+        return [ContainmentAction.model_validate_json(row["payload"]) for row in rows]
 
     def list_incidents(self) -> list[Incident]:
         with self._lock:

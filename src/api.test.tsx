@@ -39,6 +39,18 @@ it("sends explicit simulation operator identity on mutations", async () => {
   expect(headers.get("X-Operator-Id")).toBe("console-operator");
 });
 
+it("authorizes the rollback simulation as an operator mutation", async () => {
+  const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(JSON.stringify({ rule_id: "rule-rollback" }), { status: 200 }),
+  );
+
+  await sentinelApi.runRollbackDemo();
+
+  const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
+  expect(headers.get("X-Operator-Role")).toBe("operator");
+  expect(headers.get("X-Operator-Id")).toBe("console-operator");
+});
+
 it("surfaces FastAPI detail when a mutation is rejected", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(JSON.stringify({ detail: "Infrastructure-wide rules are prohibited" }), {

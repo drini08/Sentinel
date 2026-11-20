@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Clock3, FileText, ShieldBan } from "lucide-react";
-import { sentinelApi, type ApiIncident, usePolling } from "../api";
+import { sentinelApi, type ApiIncident, type IncidentEvidence, usePolling } from "../api";
 import { Eyebrow, PageHeader, Status } from "../components/UI";
 
 export function Incidents() {
@@ -8,8 +8,18 @@ export function Incidents() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [evidence, setEvidence] = useState<IncidentEvidence | null>(null);
   useEffect(() => { if (!selectedId && feed.data[0]) setSelectedId(feed.data[0].incident_id); }, [feed.data, selectedId]);
   const selected = feed.data.find((item) => item.incident_id === selectedId) ?? feed.data[0];
+  useEffect(() => {
+    let active = true;
+    setEvidence(null);
+    if (!selected) return () => { active = false; };
+    void sentinelApi.getIncidentEvidence(selected.incident_id)
+      .then((result) => { if (active) setEvidence(result); })
+      .catch(() => { if (active) setEvidence(null); });
+    return () => { active = false; };
+  }, [selected?.incident_id]);
   const update = async (status: ApiIncident["status"]) => {
     if (!selected) return;
     setBusy(true);
@@ -28,7 +38,7 @@ export function Incidents() {
         {selected && <article className="panel min-w-0 p-6 sm:p-8"><div className="flex justify-between gap-5 border-b border-white/[0.07] pb-7"><div><div className="font-mono text-[11px] text-muted">{selected.incident_id}</div><h2 className="mt-3 text-2xl font-medium text-white">{selected.title}</h2><p className="mt-2 text-sm text-secondary">{selected.summary}</p></div><div className="risk-score"><span>RISK</span><strong>{selected.risk.risk_score}</strong></div></div>
           <div className="grid gap-7 py-7 sm:grid-cols-3"><div><Eyebrow>Service</Eyebrow><p className="mt-3 text-sm text-primary">{selected.service_id}</p></div><div><Eyebrow>Session</Eyebrow><p className="mt-3 font-mono text-xs text-primary">{selected.session_id}</p></div><div><Eyebrow>Outcome</Eyebrow><div className="mt-3"><Status tone="light">{selected.status}</Status></div></div></div>
           <div className="border-t border-white/[0.07] pt-7"><Eyebrow>Decision evidence</Eyebrow><div className="mt-5 space-y-3">{selected.risk.signals.map((signal) => <div key={signal.code} className="evidence-row"><FileText size={17} className="text-secondary" /><div><div className="text-sm text-primary">{signal.label}</div><p className="mt-1 text-xs leading-5 text-muted">{signal.evidence}</p></div><div className="font-mono text-xs text-secondary">+{signal.score}</div></div>)}</div></div>
-          <div className="mt-7 border-t border-white/[0.07] pt-7"><Eyebrow>Containment sequence</Eyebrow><div className="mt-5 grid gap-3 md:grid-cols-3">{[[ShieldBan,"Request blocked"],[Clock3,"Session restricted"],[Check,"Continuity verified"]].map(([Icon,label]) => { const C = Icon as typeof Check; return <div className="sequence-step" key={String(label)}><C size={17}/><span>{String(label)}</span></div>; })}</div></div>
+          <div className="mt-7 border-t border-white/[0.07] pt-7"><Eyebrow>Verified response evidence</Eyebrow><div className="mt-5 grid gap-3 md:grid-cols-3">{evidence && [[evidence.request_blocked,ShieldBan,"Request blocked"],[evidence.session_restricted,Clock3,"Session restricted"],[evidence.continuity_verified,Check,"Continuity verified"]].filter(([verified]) => verified).map(([,Icon,label]) => { const C = Icon as typeof Check; return <div className="sequence-step" key={String(label)}><C size={17}/><span>{String(label)}</span></div>; })}</div>{!evidence && <p className="mt-4 text-xs text-muted">Evidence unavailable</p>}</div>
           <div className="mt-7 flex flex-wrap gap-3"><button disabled={busy} className="button-secondary" onClick={() => void update("investigating")}>Mark investigating</button><button disabled={busy} className="button-primary" onClick={() => void update("resolved")}>Resolve incident</button></div>
         </article>}
       </div>}

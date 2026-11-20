@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from ipaddress import ip_address
 
 from .models import (
     AuditLog,
@@ -101,41 +102,58 @@ class DefenseService:
         return entry
 
     @staticmethod
-    def _validate_scope(request: RuleCreate) -> None:
-        target = request.target_value.strip().lower()
+    def _normalize_scope(request: RuleCreate) -> str:
+        target = request.target_value.strip()
+        lowered = target.lower()
         forbidden = {"*", "0.0.0.0/0", "::/0", "/", "all", "authenticated-users"}
-        if target in forbidden:
+        if lowered in forbidden:
             raise UnsafeRule("Infrastructure-wide and all-user rules are prohibited")
-        if request.target_type == "endpoint" and target in {"/health", "/api/v1/facility/snapshot"}:
-            raise UnsafeRule("SENTINEL health and essential control-plane endpoints cannot be blocked")
-        if request.target_type == "ip_endpoint" and "|" not in target:
+        if request.target_type == "ip":
+            try:
+                return str(ip_address(target))
+            except ValueError as error:
+                raise UnsafeRule("IP targets must be valid IPv4 or IPv6 addresses") from error
+        if request.target_type == "endpoint":
+            if not target.startswith("/") or any(character.isspace() for character in target):
+                raise UnsafeRule("Endpoint targets must be absolute paths without whitespace")
+            if lowered in {"/health", "/api/v1/facility/snapshot"}:
+                raise UnsafeRule("SENTINEL health and essential control-plane endpoints cannot be blocked")
+            return target
+        if target.count("|") != 1:
             raise UnsafeRule("ip_endpoint targets must use the format '<ip>|<path>'")
-        if request.action is FirewallAction.RATE_LIMIT and request.rate_limit is None:
-            raise UnsafeRule("Rate-limit rules require a rate_limit value")
+        raw_ip, raw_path = (part.strip() for part in target.split("|", 1))
+        try:
+            normalized_ip = str(ip_address(raw_ip))
+        except ValueError as error:
+            raise UnsafeRule("ip_endpoint targets must contain a valid IPv4 or IPv6 address") from error
+        if not raw_path.startswith("/") or any(character.isspace() for character in raw_path):
+            raise UnsafeRule("ip_endpoint targets must contain an absolute path without whitespace")
+        if raw_path.lower() in {"/health", "/api/v1/facility/snapshot"}:
+            raise UnsafeRule("SENTINEL health and essential control-plane endpoints cannot be blocked")
+        return f"{normalized_ip}|{raw_path}"
 
     def create_rule(self, request: RuleCreate, actor: str = "operator") -> FirewallRule:
-        self._validate_scope(request)
+        target_value = self._normalize_scope(request)
         for existing in self.active_rules():
             if (
                 existing.target_type == request.target_type
-                and existing.target_value == request.target_value
+                and existing.target_value == target_value
                 and existing.action == request.action
             ):
                 raise UnsafeRule(f"An equivalent active rule already exists: {existing.rule_id}")
         rule = FirewallRule(
             target_type=request.target_type,
-            target_value=request.target_value,
+            target_value=target_value,
             action=request.action,
             justification=request.justification,
             expires_at=utc_now() + timedelta(seconds=request.duration_seconds),
             incident_id=request.incident_id,
             created_by=actor,
-            rate_limit=request.rate_limit,
         )
         self.store.save_firewall_rule(rule)
         self.audit(
             "defense", "firewall_rule_created", actor, "firewall_rule", rule.rule_id,
-            "enforced", request.justification, target=request.target_value, expires_at=rule.expires_at.isoformat(),
+            "enforced", request.justification, target=target_value, expires_at=rule.expires_at.isoformat(),
         )
         check = self.verify_continuity(rule, force_failure=request.simulate_continuity_failure)
         if not check.transaction_succeeded:

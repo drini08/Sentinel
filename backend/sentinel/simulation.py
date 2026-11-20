@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from .models import RequestEvent, SessionProfile, SimulationResult, SimulationStep
 from .security import SecurityService
 
 
 def run_compromised_session_scenario(service: SecurityService) -> SimulationResult:
-    service.store.clear()
     now = datetime.now(UTC)
-    attacker_session = "session-employee-8f2a"
-    legitimate_session = "session-operator-11bd"
+    scenario_id = uuid4().hex[:8]
+    attacker_session = f"session-employee-{scenario_id}"
+    legitimate_session = f"session-operator-{scenario_id}"
+    attacker_ip = f"2001:db8::{scenario_id[:4]}:{scenario_id[4:]}"
 
     service.register_session(
         SessionProfile(
@@ -51,7 +53,7 @@ def run_compromised_session_scenario(service: SecurityService) -> SimulationResu
             service_id="dardania-water-api",
             method="POST",
             path="/admin/pump-schedules/override",
-            source_ip="185.72.14.9",
+            source_ip=attacker_ip,
             device_id="UNRECOGNIZED-CLIENT",
             attributes={"requested_mode": "manual"},
         )
