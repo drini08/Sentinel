@@ -37,7 +37,7 @@
 - Consumes: existing `RequestEvent`, `RiskAssessment`, `Incident`, `EvidenceStore`, and `SecurityService` behavior.
 - Produces: `DefenseService`, `UnsafeRule`, `RuleCreate`, `FirewallRule`, `SessionProfile`, `ProtectedService`, `HealthCheck`, `Policy`, audit persistence, and the operational endpoints under `/api/v1`.
 
-- [ ] **Step 1: Add the contributor's backend acceptance tests before implementation**
+- [x] **Step 1: Add the contributor's backend acceptance tests before implementation**
 
 Inspect the reviewed source test:
 
@@ -47,7 +47,7 @@ git show origin/codex/sentinel-v2:backend/tests/test_adaptive_defense.py
 
 Create the file with `apply_patch`. It must contain the five source-branch tests named `test_scoped_firewall_rule_is_enforced_for_matching_ip_only`, `test_overrestrictive_rule_is_rolled_back_and_audited`, `test_expired_rule_is_not_enforced`, `test_unsafe_global_rule_is_rejected`, and `test_operator_can_revoke_and_restore_session_with_rbac` without weakening their assertions. Add API tests asserting that `/api/v1/events/ingest` rejects a missing token with `401`, ordered policy thresholds reject `moderate > high` with `422`, and blocking `/api/v1/facility/snapshot` rejects the rule with `422`.
 
-- [ ] **Step 2: Run the new tests and verify the expected red state**
+- [x] **Step 2: Run the new tests and verify the expected red state**
 
 Run:
 
@@ -57,7 +57,7 @@ python -m pytest backend/tests/test_adaptive_defense.py -q
 
 Expected: collection fails because `sentinel.defense` and its new models do not exist on `main`.
 
-- [ ] **Step 3: Port the backend implementation from the reviewed source branch**
+- [x] **Step 3: Port the backend implementation from the reviewed source branch**
 
 Inspect the exact source delta:
 
@@ -77,7 +77,7 @@ if request.target_type == "endpoint" and target in {"/health", "/api/v1/facility
 
 Confirm that mutation endpoints call `require_operator`, continuity failure changes a rule to `ROLLED_BACK`, and `SecurityService.evaluate` checks active scoped rules before allowing a request.
 
-- [ ] **Step 4: Run focused and existing backend tests**
+- [x] **Step 4: Run focused and existing backend tests**
 
 Run:
 
@@ -87,7 +87,7 @@ python -m pytest backend/tests/test_adaptive_defense.py backend/tests/test_attac
 
 Expected: all tests pass; the existing compromised-session and facility contracts remain valid.
 
-- [ ] **Step 5: Commit the backend vertical slice**
+- [x] **Step 5: Commit the backend vertical slice**
 
 ```powershell
 git add backend/sentinel backend/tests/test_adaptive_defense.py
@@ -107,7 +107,7 @@ git commit -m "feat(backend): add adaptive defense lifecycle"
 - Consumes: Task 1 endpoints and JSON models.
 - Produces: `usePolling<T>(path, fallback, interval?)`, `sentinelApi`, and exported types `Detection`, `ApiIncident`, `FirewallRule`, `Session`, `ProtectedService`, `HealthCheck`, `AuditEntry`, `Dashboard`, and `Policy`.
 
-- [ ] **Step 1: Write failing polling and mutation-header tests**
+- [x] **Step 1: Write failing polling and mutation-header tests**
 
 Create `src/api.test.tsx` with:
 
@@ -134,7 +134,7 @@ it("sends explicit simulation operator identity on mutations", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the client tests and verify they fail**
+- [x] **Step 2: Run the client tests and verify they fail**
 
 Run:
 
@@ -144,7 +144,7 @@ npm.cmd test -- --run src/api.test.tsx
 
 Expected: FAIL because `src/api.ts` does not exist.
 
-- [ ] **Step 3: Port the typed client and contract, then harden error handling**
+- [x] **Step 3: Port the typed client and contract, then harden error handling**
 
 Inspect the source files:
 
@@ -155,7 +155,7 @@ git show origin/codex/sentinel-v2:contracts/sentinel-api.yaml
 
 Create/update both files with `apply_patch`. Keep `request<T>` private, use `VITE_SENTINEL_API_URL` with `http://127.0.0.1:8000` fallback, parse FastAPI `detail` on non-2xx responses, and expose `refresh` from `usePolling`. Preserve operator headers only on mutating operator calls.
 
-- [ ] **Step 4: Run the focused client tests**
+- [x] **Step 4: Run the focused client tests**
 
 Run:
 
@@ -165,7 +165,7 @@ npm.cmd test -- --run src/api.test.tsx
 
 Expected: both tests pass without open timer warnings.
 
-- [ ] **Step 5: Commit the client and contract**
+- [x] **Step 5: Commit the client and contract**
 
 ```powershell
 git add src/api.ts src/api.test.tsx contracts/sentinel-api.yaml
@@ -187,7 +187,7 @@ git commit -m "feat(web): add adaptive defense api client"
 - Consumes: Task 2 `usePolling`, `sentinelApi`, `Detection`, `FirewallRule`, and `Session`.
 - Produces: `/threats` and `/defense` routes with live, offline, empty, mutation-success, and mutation-error states.
 
-- [ ] **Step 1: Write failing route and interaction tests**
+- [x] **Step 1: Write failing route and interaction tests**
 
 `src/pages/Threats.test.tsx` must mock `globalThis.fetch`, render the page, and assert the heading and returned risk score:
 
@@ -208,7 +208,7 @@ expect(JSON.parse(String(postCall?.[1]?.body))).toMatchObject({
 });
 ```
 
-- [ ] **Step 2: Run the page tests and verify they fail**
+- [x] **Step 2: Run the page tests and verify they fail**
 
 Run:
 
@@ -218,7 +218,7 @@ npm.cmd test -- --run src/pages/Threats.test.tsx src/pages/Defense.test.tsx
 
 Expected: FAIL because both page modules and routes are missing.
 
-- [ ] **Step 3: Adapt the contributor pages into the current design system**
+- [x] **Step 3: Adapt the contributor pages into the current design system**
 
 Use the contributor branch as the behavior reference:
 
@@ -236,7 +236,7 @@ Add to `src/App.tsx`:
 <Route path="defense" element={<Defense />} />
 ```
 
-- [ ] **Step 4: Run the new page tests and type-check through the build**
+- [x] **Step 4: Run the new page tests and type-check through the build**
 
 Run:
 
@@ -247,7 +247,7 @@ npm.cmd run build
 
 Expected: tests pass and TypeScript reports no errors.
 
-- [ ] **Step 5: Commit the new operator pages**
+- [x] **Step 5: Commit the new operator pages**
 
 ```powershell
 git add src/App.tsx src/pages/Threats.tsx src/pages/Threats.test.tsx src/pages/Defense.tsx src/pages/Defense.test.tsx
@@ -272,7 +272,7 @@ git commit -m "feat(web): add threat and defense controls"
 - Consumes: Task 2 types, polling hook, and mutations.
 - Produces: live investigation, continuity, policy, and audit workflows while retaining each current page's visual hierarchy.
 
-- [ ] **Step 1: Write failing tests for the four backend-backed workflows**
+- [x] **Step 1: Write failing tests for the four backend-backed workflows**
 
 Tests must verify these observable outcomes:
 
@@ -296,7 +296,7 @@ fireEvent.change(screen.getByPlaceholderText(/Search actions/), { target: { valu
 expect(screen.getByText("firewall rule rolled back")).toBeInTheDocument();
 ```
 
-- [ ] **Step 2: Run all four tests and verify the static pages fail them**
+- [x] **Step 2: Run all four tests and verify the static pages fail them**
 
 Run:
 
@@ -306,7 +306,7 @@ npm.cmd test -- --run src/pages/Incidents.test.tsx src/pages/Services.test.tsx s
 
 Expected: FAIL because the current pages read static `src/data.ts` content and do not perform API mutations.
 
-- [ ] **Step 3: Integrate live behavior without replacing the approved layouts**
+- [x] **Step 3: Integrate live behavior without replacing the approved layouts**
 
 Use these source pages for data-flow reference only:
 
@@ -326,7 +326,7 @@ Adapt as follows:
 
 All failed mutations must display a visible error and leave the previous data intact.
 
-- [ ] **Step 4: Run the focused page suite**
+- [x] **Step 4: Run the focused page suite**
 
 Run:
 
@@ -336,7 +336,7 @@ npm.cmd test -- --run src/pages/Incidents.test.tsx src/pages/Services.test.tsx s
 
 Expected: all workflow tests pass.
 
-- [ ] **Step 5: Commit the backend-backed operational pages**
+- [x] **Step 5: Commit the backend-backed operational pages**
 
 ```powershell
 git add src/pages/Incidents.tsx src/pages/Incidents.test.tsx src/pages/Services.tsx src/pages/Services.test.tsx src/pages/Policies.tsx src/pages/Policies.test.tsx src/pages/Logs.tsx src/pages/Logs.test.tsx
@@ -358,7 +358,7 @@ git commit -m "feat(web): connect operational pages to security core"
 - Consumes: Task 2 `Dashboard` and `usePolling`; Task 3 routes.
 - Produces: discoverable Threats and Defense navigation plus live posture evidence inside the approved landing page.
 
-- [ ] **Step 1: Extend preservation tests before changing the UI**
+- [x] **Step 1: Extend preservation tests before changing the UI**
 
 Add to `Shell.test.tsx`:
 
@@ -378,7 +378,7 @@ expect(container.firstElementChild).toHaveClass("overview-apple");
 
 Also assert one live posture value, such as `4 services protected` or `Continuity verified`.
 
-- [ ] **Step 2: Run the preservation tests and verify only new expectations fail**
+- [x] **Step 2: Run the preservation tests and verify only new expectations fail**
 
 Run:
 
@@ -388,7 +388,7 @@ npm.cmd test -- --run src/components/Shell.test.tsx src/pages/Overview.test.tsx
 
 Expected: existing visual-preservation assertions pass; new routes/live posture assertions fail.
 
-- [ ] **Step 3: Add concise navigation and live posture data**
+- [x] **Step 3: Add concise navigation and live posture data**
 
 Set navigation order in `Shell.tsx` to:
 
@@ -402,7 +402,7 @@ const navigation = [
 
 Poll `/api/v1/dashboard` in `Overview.tsx`, but limit changes to the existing operational facts/status copy and links. Do not replace the hero, live network visualization, `What it does` section, CTA placement, or `overview-apple` class. Add only the minimum `styles.css` rules needed for new form/feedback states and mobile nav readability, scoped beneath `.theme-hybrid` where appropriate.
 
-- [ ] **Step 4: Run preservation tests and the complete frontend suite**
+- [x] **Step 4: Run preservation tests and the complete frontend suite**
 
 Run:
 
@@ -412,7 +412,7 @@ npm.cmd test -- --run src
 
 Expected: all frontend tests pass; Vitest does not scan `.artifacts`.
 
-- [ ] **Step 5: Commit the shell and overview integration**
+- [x] **Step 5: Commit the shell and overview integration**
 
 ```powershell
 git add src/components/Shell.tsx src/components/Shell.test.tsx src/pages/Overview.tsx src/pages/Overview.test.tsx src/styles.css
@@ -433,7 +433,7 @@ git commit -m "feat(web): surface live adaptive defense posture"
 - Consumes: all prior tasks.
 - Produces: reproducible setup/demo documentation and a verified `main` branch on `origin`.
 
-- [ ] **Step 1: Update documentation and ignore local server logs**
+- [x] **Step 1: Update documentation and ignore local server logs**
 
 Port the factual API/demo additions from the contributor branch while retaining the current product description. Document this visible demo path exactly:
 
@@ -444,7 +444,7 @@ Run attack demo → inspect Threats → open Incident evidence → inspect scope
 
 Document that the operator headers and ingestion token are local simulation controls, not production authentication. Add only local runtime logs to `.gitignore`; do not ignore test fixtures or evidence needed by the demo.
 
-- [ ] **Step 2: Run fresh backend verification**
+- [x] **Step 2: Run fresh backend verification**
 
 Run:
 
@@ -454,7 +454,7 @@ python -m pytest backend/tests -q
 
 Expected: all backend tests pass, including adaptive defense, existing facility, and existing attack-flow tests.
 
-- [ ] **Step 3: Run fresh frontend verification and production build**
+- [x] **Step 3: Run fresh frontend verification and production build**
 
 Run:
 
@@ -465,7 +465,7 @@ npm.cmd run build
 
 Expected: all frontend tests pass and Vite creates `dist` without TypeScript errors.
 
-- [ ] **Step 4: Run the manual end-to-end demo against local services**
+- [x] **Step 4: Run the manual end-to-end demo against local services**
 
 Start FastAPI and Vite, then verify in Chrome at desktop and narrow widths:
 
@@ -482,11 +482,11 @@ Acceptance observations:
 4. The rollback demo visibly creates then rolls back the unsafe scoped rule.
 5. Every new page has a usable empty/offline state and no horizontal page overflow at the narrow viewport.
 
-- [ ] **Step 5: Invoke verification-before-completion and record the evidence**
+- [x] **Step 5: Invoke verification-before-completion and record the evidence**
 
 Re-run the commands from Steps 2 and 3 after any manual-demo fix. Update the checkboxes in this plan only after observing fresh passing output.
 
-- [ ] **Step 6: Commit documentation and verification metadata**
+- [x] **Step 6: Commit documentation and verification metadata**
 
 ```powershell
 git add README.md backend/README.md .gitignore docs/superpowers/specs/2026-11-20-adaptive-defense-integration-design.md docs/superpowers/plans/2026-11-20-adaptive-defense-integration.md
