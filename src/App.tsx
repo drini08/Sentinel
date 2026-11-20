@@ -18,8 +18,8 @@ export function App() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
-        <Route path="incidents" element={<Incidents />} />
         <Route path="threats" element={<Threats />} />
+        <Route path="incidents" element={<Incidents />} />
         <Route path="defense" element={<Defense />} />
         <Route path="facility" element={<Suspense fallback={<div className="facility-route-loading">Loading digital twin…</div>}><Facility /></Suspense>} />
         <Route path="services" element={<Services />} />

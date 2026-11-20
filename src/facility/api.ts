@@ -7,6 +7,7 @@ import type {
 } from "./types";
 
 const apiBase = (import.meta.env.VITE_SENTINEL_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
+const operatorHeaders = { "X-Operator-Role": "operator", "X-Operator-Id": "console-operator" };
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };
 
@@ -27,7 +28,7 @@ export const facilityApi: FacilityApi = {
   getSnapshot: () => request<FacilitySnapshot>("/api/v1/facility/snapshot"),
   executeCommand: (assetId: string, body: FacilityCommandRequest) =>
     request<FacilityCommandResult>(`/api/v1/facility/assets/${assetId}/commands`, { method: "POST", body }),
-  reset: () => request<FacilitySnapshot>("/api/v1/facility/reset", { method: "POST" }),
+  reset: () => request<FacilitySnapshot>("/api/v1/facility/reset", { method: "POST", headers: operatorHeaders }),
   runScenario: () =>
-    request<FacilityScenarioResult>("/api/v1/facility/scenarios/compromised-operator", { method: "POST" }),
+    request<FacilityScenarioResult>("/api/v1/facility/scenarios/compromised-operator", { method: "POST", headers: operatorHeaders }),
 };

@@ -1,9 +1,11 @@
 import { Activity, FileSearch } from "lucide-react";
 import { PageHeader, Status } from "../components/UI";
-import { type Detection, usePolling } from "../api";
+import { type Detection, type Policy, usePolling } from "../api";
 
 export function Threats() {
   const { data: detections, connected } = usePolling<Detection[]>("/api/v1/detections", []);
+  const policies = usePolling<Policy[]>("/api/v1/policies", []);
+  const policy = policies.data[0];
   return (
     <div className="animate-enter">
       <PageHeader eyebrow="Threat understanding" title="Threat Intelligence" description="Explainable rule, behavioral, velocity, and access-context detections from protected traffic." action={<Status tone={connected ? "light" : "muted"}>{connected ? "Live" : "Offline"}</Status>} />
@@ -21,7 +23,7 @@ export function Threats() {
           <Activity size={18} className="text-white" />
           <h2 className="mt-4 text-lg text-white">Hybrid detection</h2>
           <p className="mt-2 text-xs leading-5 text-muted">Deterministic rules, request velocity, behavioral context, and cross-signal correlation. Enforcement never depends on a generative model.</p>
-          <dl className="mt-6 space-y-3 border-t border-white/[0.07] pt-5 text-xs"><div className="flex justify-between"><dt className="text-muted">Critical</dt><dd>80–100</dd></div><div className="flex justify-between"><dt className="text-muted">High</dt><dd>60–79</dd></div><div className="flex justify-between"><dt className="text-muted">Moderate</dt><dd>30–59</dd></div></dl>
+          {policy ? <dl className="mt-6 space-y-3 border-t border-white/[0.07] pt-5 text-xs"><div className="flex justify-between"><dt className="text-muted">Critical</dt><dd>{policy.critical_threshold}–100</dd></div><div className="flex justify-between"><dt className="text-muted">High</dt><dd>{policy.high_threshold}–{policy.critical_threshold - 1}</dd></div><div className="flex justify-between"><dt className="text-muted">Moderate</dt><dd>{policy.moderate_threshold}–{policy.high_threshold - 1}</dd></div></dl> : <p className="mt-6 border-t border-white/[0.07] pt-5 text-xs text-muted">Policy thresholds unavailable</p>}
         </aside>
       </div>
     </div>

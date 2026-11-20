@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from ..models import RequestEvent, SessionProfile, SimulationStep
 from ..security import SecurityService
@@ -29,16 +30,17 @@ class FacilityService:
 
     def run_compromised_operator(self) -> FacilityScenarioResult:
         self.engine.reset()
-        self.security.store.clear()
         now = datetime.now(UTC)
+        scenario_id = uuid4().hex[:8]
+        attacker_ip = f"2001:db8::{scenario_id[:4]}:{scenario_id[4:]}"
         attacker = OperatorSession(
-            session_id="session-employee-8f2a",
+            session_id=f"session-employee-{scenario_id}",
             user_id="employee-104",
             source_ip="10.20.0.14",
             device_id="DWS-OPS-07",
         )
         legitimate = OperatorSession(
-            session_id="session-operator-11bd",
+            session_id=f"session-operator-{scenario_id}",
             user_id="operator-221",
             source_ip="10.20.0.21",
             device_id="DWS-OPS-11",
@@ -78,7 +80,7 @@ class FacilityService:
             session=OperatorSession(
                 session_id=attacker.session_id,
                 user_id=attacker.user_id,
-                source_ip="185.72.14.9",
+                source_ip=attacker_ip,
                 device_id="UNRECOGNIZED-CLIENT",
             ),
         )

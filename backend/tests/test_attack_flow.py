@@ -1,3 +1,7 @@
+from pathlib import Path
+
+import yaml
+
 from sentinel.main import create_app
 from sentinel.models import RequestEvent
 from sentinel.security import SecurityService
@@ -56,3 +60,19 @@ def test_fastapi_exposes_the_shared_contract() -> None:
     assert contract["info"]["title"] == "SENTINEL Security Core"
     assert "/api/v1/gateway/evaluate" in contract["paths"]
     assert "/api/v1/simulations/compromised-session" in contract["paths"]
+
+
+def test_checked_in_contract_covers_every_runtime_path() -> None:
+    contract_path = Path(__file__).parents[2] / "contracts" / "sentinel-api.yaml"
+    checked_in = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
+    runtime = create_app(":memory:").openapi()
+
+    assert set(checked_in["paths"]) == set(runtime["paths"])
+    for path, runtime_path in runtime["paths"].items():
+        checked_path = checked_in["paths"][path]
+        assert set(checked_path) == set(runtime_path), path
+        for method, runtime_operation in runtime_path.items():
+            checked_operation = checked_path[method]
+            assert ("requestBody" in checked_operation) == ("requestBody" in runtime_operation), f"{method} {path}"
+            if method != "get" and "200" in runtime_operation["responses"] and "content" in runtime_operation["responses"]["200"]:
+                assert "content" in checked_operation["responses"]["200"], f"{method} {path} missing response schema"

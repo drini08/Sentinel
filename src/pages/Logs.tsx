@@ -6,7 +6,8 @@ import { PageHeader, Status } from "../components/UI";
 export function Logs() {
   const [query, setQuery] = useState("");
   const audit = usePolling<AuditEntry[]>("/api/v1/audit?limit=500", []);
-  const filtered = useMemo(() => audit.data.filter((row) => Object.values(row).some((value) => String(value).toLowerCase().includes(query.toLowerCase()))), [audit.data, query]);
+  const normalize = (value: unknown) => String(value).toLowerCase().replace(/[^a-z0-9]/g, "").replaceAll("rolledback", "rollback");
+  const filtered = useMemo(() => audit.data.filter((row) => Object.values(row).some((value) => normalize(value).includes(normalize(query)))), [audit.data, query]);
   const exportEvidence = () => {
     const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const link = document.createElement("a");

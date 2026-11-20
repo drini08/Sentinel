@@ -9,16 +9,17 @@ export function Defense() {
   const [target, setTarget] = useState("203.0.113.44");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const act = async (operation: () => Promise<unknown>, success: string) => {
-    setBusy(true); setMessage(null);
+    setBusy(true); setMessage(null); setFailed(false);
     try { await operation(); setMessage(success); await Promise.all([rules.refresh(), sessions.refresh()]); }
-    catch (reason) { setMessage(reason instanceof Error ? reason.message : "Action failed"); }
+    catch (reason) { setFailed(true); setMessage(reason instanceof Error ? reason.message : "Action failed"); }
     finally { setBusy(false); }
   };
   return (
     <div className="animate-enter">
       <PageHeader eyebrow="Controlled defense" title="Defense Control" description="Manage scoped gateway restrictions and compromised sessions with complete, reversible audit history." action={<Status tone={rules.connected ? "light" : "muted"}>{rules.connected ? "Enforcing" : "Offline"}</Status>} />
-      {message && <div className="mb-5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-xs text-secondary" role="status">{message}</div>}
+      {message && <div className="mb-5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-xs text-secondary" role={failed ? "alert" : "status"}>{message}</div>}
       <div className="grid gap-5 xl:grid-cols-[1.4fr_.7fr]">
         <section className="panel overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/[0.07] p-5"><div className="eyebrow">Adaptive firewall rules</div><span className="font-mono text-[10px] text-muted">{rules.data.filter((rule) => rule.status === "active").length} ACTIVE</span></div>

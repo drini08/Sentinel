@@ -12,6 +12,7 @@ from .models import (
     FirewallRule,
     HealthCheck,
     Incident,
+    IncidentEvidence,
     IncidentUpdate,
     Policy,
     PolicyUpdate,
@@ -117,6 +118,25 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             update.status.value, update.resolution or f"Incident moved to {update.status.value}.",
         )
         return incident
+
+    @application.get(
+        "/api/v1/incidents/{incident_id}/evidence",
+        response_model=IncidentEvidence,
+        tags=["incidents"],
+    )
+    async def incident_evidence(incident_id: str) -> IncidentEvidence:
+        incident = store.get_incident(incident_id)
+        if incident is None:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        actions = [item for item in store.list_actions() if item.incident_id == incident_id]
+        rules = [item for item in store.list_firewall_rules() if item.incident_id == incident_id]
+        rule_ids = {item.rule_id for item in rules}
+        checks = [item for item in store.list_health_checks(500) if item.rule_id in rule_ids]
+        return IncidentEvidence(
+            request_blocked=True,
+            session_restricted=any(item.status == "enforced" for item in actions),
+            continuity_verified=any(item.transaction_succeeded for item in checks),
+        )
 
     @application.get("/api/v1/detections", response_model=list[RiskAssessment], tags=["detections"])
     async def list_detections(limit: int = Query(default=100, ge=1, le=500)) -> list[RiskAssessment]:
@@ -226,8 +246,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Policy not found")
         changes = update.model_dump(exclude_none=True)
         thresholds = [changes.get("moderate_threshold", current.moderate_threshold), changes.get("high_threshold", current.high_threshold), changes.get("critical_threshold", current.critical_threshold)]
-        if thresholds != sorted(thresholds):
-            raise HTTPException(status_code=422, detail="Thresholds must be ordered moderate <= high <= critical")
+        if not thresholds[0] < thresholds[1] < thresholds[2]:
+            raise HTTPException(status_code=422, detail="Thresholds must be ordered and strictly increasing: moderate < high < critical")
         policy = current.model_copy(update={**changes, "updated_at": utc_now()})
         store.save_policy(policy)
         defense.audit("policy", "policy_updated", operator_id, "policy", policy_id, "saved", "Response policy configuration updated.", changes=changes)
@@ -235,6 +255,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
 
     @application.get("/api/v1/dashboard", tags=["dashboard"])
     async def dashboard() -> dict[str, object]:
+        defense.active_rules()
         incidents = store.list_incidents()
         services = store.list_protected_services()
         rules = store.list_firewall_rules()
@@ -258,11 +279,20 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         response_model=SimulationResult,
         tags=["simulation"],
     )
-    async def run_simulation() -> SimulationResult:
+    async def run_simulation(
+        operator_role: str | None = Header(default=None, alias="X-Operator-Role"),
+        operator_id: str = Header(default="console-operator", alias="X-Operator-Id"),
+    ) -> SimulationResult:
+        require_operator(operator_role)
+        defense.audit("simulation", "simulation_started", operator_id, "scenario", "compromised-session", "authorized", "Authorized compromised-session simulation started.")
         return run_compromised_session_scenario(security)
 
     @application.post("/api/v1/simulations/rollback", response_model=FirewallRule, tags=["simulation"])
-    async def run_rollback_simulation() -> FirewallRule:
+    async def run_rollback_simulation(
+        operator_role: str | None = Header(default=None, alias="X-Operator-Role"),
+        operator_id: str = Header(default="console-operator", alias="X-Operator-Id"),
+    ) -> FirewallRule:
+        require_operator(operator_role)
         return defense.create_rule(
             RuleCreate(
                 target_type="endpoint",
@@ -271,7 +301,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
                 duration_seconds=300,
                 simulate_continuity_failure=True,
             ),
-            actor="sentinel-simulation",
+            actor=operator_id,
         )
 
     @application.get(
@@ -300,7 +330,12 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         response_model=FacilitySnapshot,
         tags=["facility"],
     )
-    async def reset_facility() -> FacilitySnapshot:
+    async def reset_facility(
+        operator_role: str | None = Header(default=None, alias="X-Operator-Role"),
+        operator_id: str = Header(default="console-operator", alias="X-Operator-Id"),
+    ) -> FacilitySnapshot:
+        require_operator(operator_role)
+        defense.audit("facility", "facility_reset", operator_id, "facility", "dardania-water", "reset", "Facility simulation returned to baseline.")
         return facility.engine.reset()
 
     @application.post(
@@ -308,7 +343,12 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         response_model=FacilityScenarioResult,
         tags=["facility"],
     )
-    async def compromised_operator_scenario() -> FacilityScenarioResult:
+    async def compromised_operator_scenario(
+        operator_role: str | None = Header(default=None, alias="X-Operator-Role"),
+        operator_id: str = Header(default="console-operator", alias="X-Operator-Id"),
+    ) -> FacilityScenarioResult:
+        require_operator(operator_role)
+        defense.audit("simulation", "simulation_started", operator_id, "scenario", "compromised-operator", "authorized", "Authorized facility attack simulation started.")
         return facility.run_compromised_operator()
 
     return application

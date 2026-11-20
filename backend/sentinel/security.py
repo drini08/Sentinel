@@ -61,7 +61,7 @@ class SecurityService:
             return GatewayDecision(
                 event_id=event.event_id,
                 allowed=False,
-                response_status=429 if firewall_rule.action.value == "rate_limit" else 403,
+                response_status=403,
                 reason=f"Request denied by active firewall rule {firewall_rule.rule_id}.",
             )
 

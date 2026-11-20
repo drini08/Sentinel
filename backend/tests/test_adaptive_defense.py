@@ -2,13 +2,16 @@ from datetime import timedelta
 
 from fastapi.testclient import TestClient
 
-from sentinel.defense import DefenseService, UnsafeRule
-from sentinel.models import RequestEvent, RuleCreate, SessionProfile, utc_now
-from sentinel.security import SecurityService
-from sentinel.store import EvidenceStore
+from sentinel.main import create_app
+from sentinel.models import RequestEvent
 
 
 def test_scoped_firewall_rule_is_enforced_for_matching_ip_only() -> None:
+    from sentinel.defense import DefenseService
+    from sentinel.models import RuleCreate
+    from sentinel.security import SecurityService
+    from sentinel.store import EvidenceStore
+
     store = EvidenceStore(":memory:")
     defense = DefenseService(store)
     security = SecurityService(store, defense=defense)
@@ -31,7 +34,36 @@ def test_scoped_firewall_rule_is_enforced_for_matching_ip_only() -> None:
     assert allowed.allowed is True
 
 
+def test_ipv6_rule_matches_equivalent_source_formatting() -> None:
+    from sentinel.defense import DefenseService
+    from sentinel.models import RuleCreate
+    from sentinel.security import SecurityService
+    from sentinel.store import EvidenceStore
+
+    store = EvidenceStore(":memory:")
+    defense = DefenseService(store)
+    security = SecurityService(store, defense=defense)
+    defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="2001:db8::1",
+        justification="Equivalent IPv6 representation test.",
+    ))
+
+    decision = security.evaluate(RequestEvent(
+        session_id="session-ipv6", user_id="operator", service_id="dardania-water-api",
+        method="GET", path="/telemetry/pressure",
+        source_ip="2001:0db8:0:0:0:0:0:1", device_id="unknown",
+    ))
+
+    assert decision.allowed is False
+    assert decision.response_status == 403
+
+
 def test_overrestrictive_rule_is_rolled_back_and_audited() -> None:
+    from sentinel.defense import DefenseService
+    from sentinel.models import RuleCreate
+    from sentinel.store import EvidenceStore
+
     store = EvidenceStore(":memory:")
     defense = DefenseService(store)
 
@@ -48,6 +80,10 @@ def test_overrestrictive_rule_is_rolled_back_and_audited() -> None:
 
 
 def test_expired_rule_is_not_enforced() -> None:
+    from sentinel.defense import DefenseService
+    from sentinel.models import RuleCreate, utc_now
+    from sentinel.store import EvidenceStore
+
     store = EvidenceStore(":memory:")
     defense = DefenseService(store)
     rule = defense.create_rule(RuleCreate(
@@ -64,6 +100,10 @@ def test_expired_rule_is_not_enforced() -> None:
 
 
 def test_unsafe_global_rule_is_rejected() -> None:
+    from sentinel.defense import DefenseService, UnsafeRule
+    from sentinel.models import RuleCreate
+    from sentinel.store import EvidenceStore
+
     defense = DefenseService(EvidenceStore(":memory:"))
     try:
         defense.create_rule(RuleCreate(
@@ -76,7 +116,9 @@ def test_unsafe_global_rule_is_rejected() -> None:
 
 
 def test_operator_can_revoke_and_restore_session_with_rbac() -> None:
-    app = TestClient(__import__("sentinel.main", fromlist=["create_app"]).create_app(":memory:"))
+    from sentinel.models import SessionProfile
+
+    app = TestClient(create_app(":memory:"))
     app.app.state.store.save_session(SessionProfile(
         session_id="session-control", user_id="operator", trusted_source_ip="10.0.0.4", trusted_device_id="ops-4",
     ))
@@ -96,3 +138,174 @@ def test_operator_can_revoke_and_restore_session_with_rbac() -> None:
     assert denied.status_code == 403
     assert revoked.json()["status"] == "revoked"
     assert restored.json()["status"] == "active"
+
+
+def test_ingestion_requires_the_simulation_token() -> None:
+    app = TestClient(create_app(":memory:"))
+    payload = RequestEvent(
+        session_id="session-ingest", user_id="operator", service_id="dardania-water-api",
+        method="GET", path="/telemetry/pressure", source_ip="10.20.0.21", device_id="DWS-OPS-11",
+    ).model_dump(mode="json")
+
+    denied = app.post("/api/v1/events/ingest", json=payload)
+    allowed = app.post(
+        "/api/v1/events/ingest",
+        json=payload,
+        headers={"X-Sentinel-Ingestion-Token": "sentinel-sim-ingest"},
+    )
+
+    assert denied.status_code == 401
+    assert allowed.status_code == 200
+
+
+def test_policy_thresholds_must_remain_ordered() -> None:
+    app = TestClient(create_app(":memory:"))
+    policy = app.get("/api/v1/policies").json()[0]
+
+    response = app.patch(
+        f"/api/v1/policies/{policy['policy_id']}",
+        json={"moderate_threshold": 90, "high_threshold": 70},
+        headers={"X-Operator-Role": "operator"},
+    )
+
+    assert response.status_code == 422
+    assert "ordered" in response.json()["detail"]
+
+
+def test_policy_thresholds_must_be_strictly_increasing() -> None:
+    app = TestClient(create_app(":memory:"))
+    policy = app.get("/api/v1/policies").json()[0]
+
+    response = app.patch(
+        f"/api/v1/policies/{policy['policy_id']}",
+        json={"moderate_threshold": 60, "high_threshold": 60},
+        headers={"X-Operator-Role": "operator"},
+    )
+
+    assert response.status_code == 422
+    assert "strictly increasing" in response.json()["detail"]
+
+
+def test_facility_control_plane_cannot_be_blocked() -> None:
+    app = TestClient(create_app(":memory:"))
+
+    response = app.post(
+        "/api/v1/firewall/rules",
+        json={
+            "target_type": "endpoint",
+            "target_value": "/api/v1/facility/snapshot",
+            "action": "block",
+            "justification": "This unsafe rule must be rejected.",
+            "duration_seconds": 900,
+        },
+        headers={"X-Operator-Role": "operator"},
+    )
+
+    assert response.status_code == 422
+    assert "cannot be blocked" in response.json()["detail"]
+
+
+def test_simulations_require_operator_and_preserve_existing_defense_state() -> None:
+    from sentinel.models import RuleCreate
+
+    app = TestClient(create_app(":memory:"))
+    existing = app.app.state.defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="203.0.113.77",
+        justification="Pre-existing operator defense rule.",
+    ))
+
+    denied = app.post("/api/v1/simulations/compromised-session")
+    completed = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+    repeated = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+
+    assert denied.status_code == 403
+    assert completed.status_code == 200
+    assert repeated.status_code == 200
+    assert app.app.state.store.get_firewall_rule(existing.rule_id) is not None
+    assert len(app.app.state.store.list_incidents()) == 2
+
+
+def test_rollback_simulation_requires_operator() -> None:
+    app = TestClient(create_app(":memory:"))
+
+    denied = app.post("/api/v1/simulations/rollback")
+    completed = app.post(
+        "/api/v1/simulations/rollback",
+        headers={"X-Operator-Role": "operator", "X-Operator-Id": "demo-director"},
+    )
+
+    assert denied.status_code == 403
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "rolled_back"
+
+
+def test_firewall_targets_are_validated_and_normalized() -> None:
+    from sentinel.defense import DefenseService, UnsafeRule
+    from sentinel.models import RuleCreate
+    from sentinel.store import EvidenceStore
+
+    defense = DefenseService(EvidenceStore(":memory:"))
+    normalized = defense.create_rule(RuleCreate(
+        target_type="ip_endpoint",
+        target_value=" 2001:0db8::1|/telemetry/pressure ",
+        justification="Normalized scoped IPv6 restriction.",
+    ))
+
+    assert normalized.target_value == "2001:db8::1|/telemetry/pressure"
+    for target_type, target_value in (
+        ("ip", "not-an-ip"),
+        ("endpoint", "telemetry/pressure"),
+        ("ip_endpoint", "not-an-ip|/telemetry/pressure"),
+    ):
+        try:
+            defense.create_rule(RuleCreate(
+                target_type=target_type,
+                target_value=target_value,
+                justification="Malformed target rejection test.",
+            ))
+        except UnsafeRule:
+            continue
+        raise AssertionError(f"{target_type} target should be rejected")
+
+
+def test_expired_rules_are_reconciled_before_dashboard_aggregation() -> None:
+    from sentinel.models import RuleCreate, utc_now
+
+    app = TestClient(create_app(":memory:"))
+    rule = app.app.state.defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="203.0.113.78",
+        justification="Short-lived dashboard reconciliation test.",
+    ))
+    app.app.state.store.save_firewall_rule(
+        rule.model_copy(update={"expires_at": utc_now() - timedelta(seconds=1)})
+    )
+
+    dashboard = app.get("/api/v1/dashboard").json()
+
+    assert dashboard["active_rules"] == 0
+    assert app.app.state.store.get_firewall_rule(rule.rule_id).status == "expired"
+
+
+def test_incident_evidence_reports_only_persisted_outcomes() -> None:
+    app = TestClient(create_app(":memory:"))
+    result = app.post(
+        "/api/v1/simulations/compromised-session",
+        headers={"X-Operator-Role": "operator"},
+    ).json()
+
+    evidence = app.get(f"/api/v1/incidents/{result['incident']['incident_id']}/evidence")
+
+    assert evidence.status_code == 200
+    assert evidence.json() == {
+        "request_blocked": True,
+        "session_restricted": True,
+        "continuity_verified": True,
+    }

@@ -22,11 +22,11 @@ Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
 
 The primary integration test verifies that a compromised employee session receives a simulated `403`, an independent legitimate session receives `200`, and the incident evidence is retained.
 
-Adaptive-defense tests additionally verify scoped firewall enforcement, automatic expiration, global-rule rejection, server-side revoke/restore with RBAC, and rollback when a legitimate continuity transaction fails.
+Adaptive-defense tests additionally verify scoped firewall enforcement, automatic expiration, protected-endpoint and global-rule rejection, server-side revoke/restore with RBAC, ordered policy thresholds, authenticated ingestion, and rollback when a legitimate continuity transaction fails.
 
 ## Operational API
 
-- `GET /api/v1/dashboard`, `/detections`, `/incidents`, `/audit` expose live operational state.
+- `GET /api/v1/dashboard`, `/detections`, `/incidents`, and `/audit` expose live operational state.
 - `POST /api/v1/events/ingest` requires `X-Sentinel-Ingestion-Token` (local default: `sentinel-sim-ingest`).
 - `/api/v1/firewall/rules` creates, lists, expires, and removes enforced scoped rules.
 - `/api/v1/sessions/{id}/revoke|restore` enforces identity containment server-side.
@@ -34,6 +34,8 @@ Adaptive-defense tests additionally verify scoped firewall enforcement, automati
 - `/api/v1/policies` controls ordered response thresholds and corroboration requirements.
 - Mutating operator endpoints require `X-Operator-Role: operator` or `admin`.
 - `POST /api/v1/simulations/rollback` proves continuity-triggered automatic rollback.
+
+The fixed operator identity headers and ingestion token are local simulation controls, not production authentication or secrets management.
 
 ## Facility API
 
