@@ -1,32 +1,83 @@
 import { useState } from "react";
-import { Plus, SlidersHorizontal } from "lucide-react";
-import { policies as initialPolicies } from "../data";
-import { Eyebrow, PageHeader } from "../components/UI";
+import { ShieldCheck } from "lucide-react";
+import { sentinelApi, type Policy, usePolling } from "../api";
+import { Eyebrow, PageHeader, Status } from "../components/UI";
 
 export function Policies() {
-  const [policies, setPolicies] = useState(initialPolicies);
-  const toggle = (index: number) => setPolicies((current) => current.map((policy, i) => i === index ? { ...policy, enabled: !policy.enabled } : policy));
+  const policies = usePolling<Policy[]>("/api/v1/policies", []);
+  const policy = policies.data[0];
+  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const update = async (changes: Partial<Policy>) => {
+    if (!policy) return;
+    setBusy(true);
+    setMessage(null);
+    setFailed(false);
+    try {
+      await sentinelApi.updatePolicy(policy.policy_id, changes);
+      await policies.refresh();
+      setMessage("Policy saved to the backend and audit log.");
+    } catch (reason) {
+      setFailed(true);
+      setMessage(reason instanceof Error ? reason.message : "Policy update failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="animate-enter">
-      <PageHeader eyebrow="Decision framework" title="Protection Policies" description="Define when suspicious activity is observed, restricted, or escalated for operator approval." action={<button className="button-primary"><Plus size={15} /> New policy</button>} />
+      <PageHeader
+        eyebrow="Decision framework"
+        title="Protection Policies"
+        description="Control detection thresholds and authorize scoped, reversible response behavior."
+        action={<Status tone={policies.connected ? "light" : "muted"}>{policies.connected ? "Connected" : "Offline"}</Status>}
+      />
+      {message && <div className="mb-5 rounded-lg border border-white/[0.1] px-4 py-3 text-xs text-secondary" role={failed ? "alert" : "status"}>{message}</div>}
       <div className="grid gap-5 lg:grid-cols-[1.5fr_.62fr]">
         <div className="panel divide-y divide-white/[0.07]">
-          {policies.map((policy, index) => (
-            <div key={policy.name} className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between lg:p-7">
-              <div className="flex gap-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/[0.09] bg-white/[0.025] text-secondary"><SlidersHorizontal size={16} /></span>
-                <div><h2 className="text-sm font-medium text-primary">{policy.name}</h2><p className="mt-1.5 max-w-xl text-xs leading-5 text-muted">{policy.description}</p><div className="mt-3 font-mono text-[10px] tracking-[0.08em] text-secondary">{policy.scope}</div></div>
+          {policy ? <>
+            {[
+              ["Moderate threshold", "moderate_threshold", policy.moderate_threshold],
+              ["High threshold", "high_threshold", policy.high_threshold],
+              ["Critical threshold", "critical_threshold", policy.critical_threshold],
+            ].map(([label, key, value]) => (
+              <div key={String(key)} className="grid gap-4 p-6 sm:grid-cols-[180px_1fr_auto] sm:items-center lg:p-7">
+                <div><div className="text-sm font-medium text-primary">{label}</div><p className="mt-1 text-xs text-muted">Risk score required for this response tier.</p></div>
+                <input
+                  aria-label={String(label)}
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Number(value)}
+                  disabled={busy}
+                  onChange={(event) => void update({ [String(key)]: Number(event.target.value) } as Partial<Policy>)}
+                />
+                <span className="w-8 font-mono text-sm text-primary">{Number(value)}</span>
               </div>
-              <button onClick={() => toggle(index)} className={`toggle ${policy.enabled ? "toggle-on" : ""}`} role="switch" aria-checked={policy.enabled} aria-label={`Toggle ${policy.name}`}><span /></button>
+            ))}
+            <div className="flex items-center justify-between gap-6 p-6 lg:p-7">
+              <div><div className="text-sm font-medium text-primary">Automatic scoped containment</div><p className="mt-1.5 text-xs leading-5 text-muted">Permit corroborated session and source restrictions for critical activity.</p></div>
+              <button disabled={busy} aria-label="Automatic scoped containment" className={`toggle ${policy.automatic_containment ? "toggle-on" : ""}`} role="switch" aria-checked={policy.automatic_containment} onClick={() => void update({ automatic_containment: !policy.automatic_containment })}><span /></button>
             </div>
-          ))}
+            <div className="flex items-center justify-between gap-6 p-6 lg:p-7">
+              <div><div className="text-sm font-medium text-primary">Require corroborating evidence</div><p className="mt-1.5 text-xs leading-5 text-muted">A score alone cannot authorize a high-impact defensive action.</p></div>
+              <button disabled={busy} aria-label="Require corroborating evidence" className={`toggle ${policy.require_corroboration ? "toggle-on" : ""}`} role="switch" aria-checked={policy.require_corroboration} onClick={() => void update({ require_corroboration: !policy.require_corroboration })}><span /></button>
+            </div>
+          </> : <div className="p-12 text-center text-sm text-muted">Policy configuration is unavailable.</div>}
         </div>
         <aside className="panel h-fit p-6 lg:p-7">
-          <Eyebrow>Policy posture</Eyebrow>
-          <div className="mt-6 text-4xl font-medium tracking-[-0.04em] text-white">03</div>
-          <p className="mt-2 text-xs text-muted">Active enforcement rules</p>
-          <div className="my-6 h-px bg-white/[0.07]" />
-          <dl className="space-y-4 text-xs"><div className="flex justify-between"><dt className="text-muted">Auto-contain</dt><dd className="text-primary">Critical only</dd></div><div className="flex justify-between"><dt className="text-muted">Operator approval</dt><dd className="text-primary">Required</dd></div><div className="flex justify-between"><dt className="text-muted">Last revision</dt><dd className="font-mono text-primary">10:21</dd></div></dl>
+          <ShieldCheck size={19} className="text-secondary" />
+          <div className="mt-5"><Eyebrow>Safety boundaries</Eyebrow></div>
+          <ul className="mt-5 space-y-4 text-xs leading-5 text-secondary">
+            <li>Infrastructure-wide targets are rejected.</li>
+            <li>Essential control-plane endpoints cannot be blocked.</li>
+            <li>Operator role is required for manual changes.</li>
+            <li>Failed continuity checks automatically roll rules back.</li>
+            <li>Every change is retained in the audit record.</li>
+          </ul>
         </aside>
       </div>
     </div>
