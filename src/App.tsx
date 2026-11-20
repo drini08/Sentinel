@@ -8,6 +8,8 @@ import { Policies } from "./pages/Policies";
 import { Logs } from "./pages/Logs";
 import { Lab } from "./pages/Lab";
 import { Settings } from "./pages/Settings";
+import { Threats } from "./pages/Threats";
+import { Defense } from "./pages/Defense";
 
 const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
 
@@ -17,6 +19,8 @@ export function App() {
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
         <Route path="incidents" element={<Incidents />} />
+        <Route path="threats" element={<Threats />} />
+        <Route path="defense" element={<Defense />} />
         <Route path="facility" element={<Suspense fallback={<div className="facility-route-loading">Loading digital twin…</div>}><Facility /></Suspense>} />
         <Route path="services" element={<Services />} />
         <Route path="policies" element={<Policies />} />

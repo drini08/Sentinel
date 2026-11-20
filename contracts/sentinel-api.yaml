@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: SENTINEL Security Contract
-  version: 0.1.0
-  description: Shared contract for request evaluation, explainable risk, selective containment, and incident evidence.
+  version: 0.2.0
+  description: Shared contract for monitoring, explainable detection, adaptive defense, continuity verification, recovery, and audit evidence.
 servers:
   - url: http://127.0.0.1:8000
 paths:
@@ -41,6 +41,51 @@ paths:
       responses:
         "200":
           description: Retained request events, newest first.
+  /api/v1/dashboard:
+    get:
+      operationId: getDashboard
+      responses:
+        "200": { description: Live aggregate defense posture and recent evidence. }
+  /api/v1/detections:
+    get:
+      operationId: listDetections
+      responses:
+        "200": { description: Explainable risk assessments, newest first. }
+  /api/v1/audit:
+    get:
+      operationId: listAudit
+      responses:
+        "200": { description: Append-only security and administrative audit history. }
+  /api/v1/firewall/rules:
+    get:
+      operationId: listFirewallRules
+      responses:
+        "200": { description: Active and historical scoped gateway rules. }
+    post:
+      operationId: createFirewallRule
+      parameters:
+        - in: header
+          name: X-Operator-Role
+          required: true
+          schema: { type: string, enum: [operator, admin] }
+      responses:
+        "200": { description: Enforced rule or automatically rolled-back rule. }
+        "422": { description: Unsafe, duplicate, or invalid rule. }
+  /api/v1/services:
+    get:
+      operationId: listProtectedServices
+      responses:
+        "200": { description: Protected infrastructure and current service health. }
+  /api/v1/health-checks:
+    get:
+      operationId: listHealthChecks
+      responses:
+        "200": { description: Continuity verification history. }
+  /api/v1/policies:
+    get:
+      operationId: listPolicies
+      responses:
+        "200": { description: Detection and response authorization policies. }
   /api/v1/simulations/compromised-session:
     post:
       operationId: runCompromisedSessionSimulation
@@ -51,6 +96,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SimulationResult"
+  /api/v1/simulations/rollback:
+    post:
+      operationId: runRollbackSimulation
+      responses:
+        "200": { description: An overrestrictive test rule rolled back after failed continuity verification. }
   /api/v1/facility/snapshot:
     get:
       operationId: getFacilitySnapshot

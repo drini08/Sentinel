@@ -4,7 +4,7 @@ AI-assisted cybersecurity for critical infrastructure. SENTINEL detects suspicio
 
 ## Run the complete demo
 
-SENTINEL now includes a React operator console, an interactive 3D water-facility digital twin, and a FastAPI security core with deterministic SCADA state.
+SENTINEL includes a React operator console, an interactive 3D water-facility digital twin, and a modular Python security core with deterministic SCADA state. The complete lifecycle is executable locally: monitor → detect → assess → contain → verify → recover.
 
 Install dependencies once:
 
@@ -26,9 +26,9 @@ Start the frontend in a second terminal:
 npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:5173/facility`.
+Open `http://127.0.0.1:5173/`.
 
-The Facility page contains three reservoirs, raw-water intake, chemical dosing, clarification, filtration, pumping, distribution controls, operations, and backup power. Click an asset to inspect backend-owned telemetry and issue controls. **Run attack demo** establishes normal behavior, attempts a compromised pump command, displays the explainable block, and verifies that an independent legitimate command still succeeds.
+The console exposes live backend state across Overview, Threat Intelligence, Incidents, Defense Control, Infrastructure, Activity & Audit, Settings, the Facility twin, and Simulation Lab. **Run attack demo** establishes normal behavior, attempts a compromised pump command, displays the explainable block, restricts only the malicious session/source, and verifies that an independent legitimate command still succeeds. **Run rollback test** creates an intentionally harmful scoped rule, detects a failed continuity transaction, and automatically reverts it.
 
 ## Verification
 
@@ -38,6 +38,6 @@ npm.cmd test -- --run
 npm.cmd run build
 ```
 
-## Security core
+## Implemented defense controls
 
-The FastAPI service in `backend/` provides the gateway event contract, deterministic facility engine, explainable risk scoring, SQLite evidence storage, selective session containment, and repeatable compromised-operator scenario. See `backend/README.md` for API details.
+The service in `backend/` provides authenticated event ingestion, explainable hybrid scoring, incident correlation, server-side session revocation, enforced IP/endpoint gateway rules, expiration, manual overrides, post-enforcement health checks, automatic rollback, role-gated administration, policy thresholds, and append-only application audit history. It uses SQLite for the self-contained demo while keeping persistence behind `EvidenceStore`; production PostgreSQL/Django migration remains an infrastructure deployment concern rather than a demo dependency. See `backend/README.md` for API details.
