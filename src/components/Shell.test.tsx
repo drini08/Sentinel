@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { expect, it } from "vitest";
 import { Shell } from "./Shell";
@@ -16,4 +16,6 @@ it("applies the compact application scale to every route", () => {
 
   expect(container.firstElementChild).toHaveClass("app-scale");
   expect(container.firstElementChild).toHaveClass("theme-hybrid");
+  expect(screen.getByRole("link", { name: "Threats" })).toHaveAttribute("href", "/threats");
+  expect(screen.getByRole("link", { name: "Defense" })).toHaveAttribute("href", "/defense");
 });
