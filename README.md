@@ -4,7 +4,7 @@ AI-assisted cybersecurity for critical infrastructure. SENTINEL detects suspicio
 
 ## Run the complete demo
 
-SENTINEL now includes a React operator console, an interactive 3D water-facility digital twin, and a FastAPI security core with deterministic SCADA state.
+SENTINEL includes a React operator console, an interactive 3D water-facility digital twin, and a modular FastAPI security core with deterministic SCADA state. The complete lifecycle runs locally: monitor → detect → assess → contain → verify → recover.
 
 Install dependencies once:
 
@@ -26,18 +26,22 @@ Start the frontend in a second terminal:
 npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:5173/facility`.
+Open `http://127.0.0.1:5173/`.
 
-The Facility page contains three reservoirs, raw-water intake, chemical dosing, clarification, filtration, pumping, distribution controls, operations, and backup power. Click an asset to inspect backend-owned telemetry and issue controls. **Run attack demo** establishes normal behavior, attempts a compromised pump command, displays the explainable block, and verifies that an independent legitimate command still succeeds.
+The console exposes live backend state across Overview, Facility, Threats, Incidents, Defense, Services, Policies, Logs, and Simulation Lab. The Facility contains three reservoirs, raw-water intake, chemical dosing, clarification, filtration, pumping, distribution controls, operations, and backup power.
+
+For the complete visible demonstration: **Run attack demo** → inspect **Threats** → open the **Incident** evidence → inspect the scoped **Defense** rule → verify **Services** continuity → **Run rollback test** → inspect the **Logs** audit evidence. The scenario restricts only the malicious session/source, proves an independent legitimate facility operation still succeeds, and visibly reverts a deliberately overrestrictive rule.
+
+`X-Operator-Role`, `X-Operator-Id`, and the default ingestion token are local simulation controls. They demonstrate authorization boundaries but are not production authentication.
 
 ## Verification
 
 ```powershell
 .venv\Scripts\python.exe -m pytest backend\tests -q
-npm.cmd test -- --run
+npm.cmd test -- --run src
 npm.cmd run build
 ```
 
-## Security core
+## Implemented defense controls
 
-The FastAPI service in `backend/` provides the gateway event contract, deterministic facility engine, explainable risk scoring, SQLite evidence storage, selective session containment, and repeatable compromised-operator scenario. See `backend/README.md` for API details.
+The service in `backend/` provides authenticated event ingestion, explainable hybrid scoring, incident correlation, server-side session revocation, enforced IP/endpoint gateway rules, expiration, manual overrides, post-enforcement health checks, automatic rollback, role-gated administration, policy thresholds, and append-only application audit history. It uses SQLite for the self-contained demo while keeping persistence behind `EvidenceStore`. See `backend/README.md` for API details.
