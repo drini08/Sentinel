@@ -7,8 +7,15 @@ from pathlib import Path
 from threading import RLock
 
 from .models import (
+    AuditLog,
     ContainmentAction,
+    FirewallRule,
+    FirewallRuleStatus,
+    HealthCheck,
     Incident,
+    IncidentStatus,
+    Policy,
+    ProtectedService,
     RequestEvent,
     RiskAssessment,
     SessionProfile,
@@ -59,6 +66,40 @@ class EvidenceStore:
                     created_at TEXT NOT NULL,
                     payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS firewall_rules (
+                    rule_id TEXT PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS health_checks (
+                    check_id TEXT PRIMARY KEY,
+                    service_id TEXT NOT NULL,
+                    checked_at TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    audit_id TEXT PRIMARY KEY,
+                    timestamp TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );
+                CREATE TRIGGER IF NOT EXISTS audit_logs_no_update
+                BEFORE UPDATE ON audit_logs BEGIN
+                    SELECT RAISE(ABORT, 'audit history is immutable');
+                END;
+                CREATE TRIGGER IF NOT EXISTS audit_logs_no_delete
+                BEFORE DELETE ON audit_logs BEGIN
+                    SELECT RAISE(ABORT, 'audit history is immutable');
+                END;
+                CREATE TABLE IF NOT EXISTS protected_services (
+                    service_id TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS policies (
+                    policy_id TEXT PRIMARY KEY,
+                    payload TEXT NOT NULL
+                );
                 """
             )
 
@@ -68,7 +109,7 @@ class EvidenceStore:
 
     def clear(self) -> None:
         with self._lock, self._connection:
-            for table in ("containment_actions", "incidents", "assessments", "events", "sessions"):
+            for table in ("containment_actions", "incidents", "assessments", "events", "sessions", "firewall_rules", "health_checks"):
                 self._connection.execute(f"DELETE FROM {table}")
 
     def save_session(self, profile: SessionProfile) -> None:
@@ -143,6 +184,25 @@ class EvidenceStore:
                 (incident.incident_id, incident.created_at.isoformat(), self._payload(incident)),
             )
 
+    def get_incident(self, incident_id: str) -> Incident | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT payload FROM incidents WHERE incident_id = ?", (incident_id,)
+            ).fetchone()
+        return Incident.model_validate_json(row["payload"]) if row else None
+
+    def update_incident_status(self, incident_id: str, status: IncidentStatus) -> Incident | None:
+        incident = self.get_incident(incident_id)
+        if incident is None:
+            return None
+        updated = incident.model_copy(update={"status": status})
+        with self._lock, self._connection:
+            self._connection.execute(
+                "UPDATE incidents SET payload = ? WHERE incident_id = ?",
+                (self._payload(updated), incident_id),
+            )
+        return updated
+
     def save_action(self, action: ContainmentAction) -> None:
         with self._lock, self._connection:
             self._connection.execute(
@@ -163,3 +223,110 @@ class EvidenceStore:
                 "SELECT payload FROM events ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
         return [RequestEvent.model_validate_json(row["payload"]) for row in rows]
+
+    def list_assessments(self, limit: int = 100) -> list[RiskAssessment]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM assessments ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [RiskAssessment.model_validate_json(row["payload"]) for row in rows]
+
+    def save_firewall_rule(self, rule: FirewallRule) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                """INSERT OR REPLACE INTO firewall_rules
+                (rule_id, created_at, expires_at, status, payload) VALUES (?, ?, ?, ?, ?)""",
+                (rule.rule_id, rule.created_at.isoformat(), rule.expires_at.isoformat(), rule.status.value, self._payload(rule)),
+            )
+
+    def get_firewall_rule(self, rule_id: str) -> FirewallRule | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT payload FROM firewall_rules WHERE rule_id = ?", (rule_id,)
+            ).fetchone()
+        return FirewallRule.model_validate_json(row["payload"]) if row else None
+
+    def update_firewall_rule_status(self, rule_id: str, status: FirewallRuleStatus) -> FirewallRule | None:
+        rule = self.get_firewall_rule(rule_id)
+        if rule is None:
+            return None
+        updated = rule.model_copy(update={"status": status})
+        self.save_firewall_rule(updated)
+        return updated
+
+    def list_firewall_rules(self) -> list[FirewallRule]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM firewall_rules ORDER BY created_at DESC"
+            ).fetchall()
+        return [FirewallRule.model_validate_json(row["payload"]) for row in rows]
+
+    def save_health_check(self, check: HealthCheck) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO health_checks VALUES (?, ?, ?, ?)",
+                (check.check_id, check.service_id, check.checked_at.isoformat(), self._payload(check)),
+            )
+
+    def list_health_checks(self, limit: int = 100) -> list[HealthCheck]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM health_checks ORDER BY checked_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [HealthCheck.model_validate_json(row["payload"]) for row in rows]
+
+    def append_audit(self, entry: AuditLog) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT INTO audit_logs VALUES (?, ?, ?)",
+                (entry.audit_id, entry.timestamp.isoformat(), self._payload(entry)),
+            )
+
+    def list_audit(self, limit: int = 200) -> list[AuditLog]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM audit_logs ORDER BY timestamp DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [AuditLog.model_validate_json(row["payload"]) for row in rows]
+
+    def save_protected_service(self, service: ProtectedService) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT OR REPLACE INTO protected_services VALUES (?, ?)",
+                (service.service_id, self._payload(service)),
+            )
+
+    def list_protected_services(self) -> list[ProtectedService]:
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT payload FROM protected_services ORDER BY service_id"
+            ).fetchall()
+        return [ProtectedService.model_validate_json(row["payload"]) for row in rows]
+
+    def save_policy(self, policy: Policy) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "INSERT OR REPLACE INTO policies VALUES (?, ?)",
+                (policy.policy_id, self._payload(policy)),
+            )
+
+    def get_policy(self, policy_id: str) -> Policy | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT payload FROM policies WHERE policy_id = ?", (policy_id,)
+            ).fetchone()
+        return Policy.model_validate_json(row["payload"]) if row else None
+
+    def list_policies(self) -> list[Policy]:
+        with self._lock:
+            rows = self._connection.execute("SELECT payload FROM policies ORDER BY policy_id").fetchall()
+        return [Policy.model_validate_json(row["payload"]) for row in rows]
+
+    def list_sessions(self) -> list[SessionProfile]:
+        with self._lock:
+            rows = self._connection.execute("SELECT * FROM sessions ORDER BY updated_at DESC").fetchall()
+        return [SessionProfile(
+            session_id=row["session_id"], user_id=row["user_id"],
+            trusted_source_ip=row["trusted_source_ip"], trusted_device_id=row["trusted_device_id"],
+            status=SessionStatus(row["status"]),
+        ) for row in rows]

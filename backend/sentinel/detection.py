@@ -6,6 +6,8 @@ from .models import RequestEvent, RiskAssessment, RiskLevel, RiskSignal, Session
 class DetectionEngine:
     """Deterministic, explainable scoring for the hackathon vertical slice."""
 
+    moderate_threshold = 30
+    high_threshold = 60
     containment_threshold = 80
 
     def assess(
@@ -56,15 +58,52 @@ class DetectionEngine:
                     evidence=f"{recent_session_events + 1} requests were observed within a 30-second window.",
                 )
             )
+        authentication_failures = int(event.attributes.get("authentication_failures", 0))
+        if not event.authenticated or authentication_failures >= 5:
+            signals.append(
+                RiskSignal(
+                    code="AUTHENTICATION_FAILURES",
+                    label="Repeated authentication failure",
+                    score=35,
+                    evidence=f"{max(authentication_failures, 1)} failed authentication attempts were correlated with this source.",
+                )
+            )
+        if event.attributes.get("privilege_change"):
+            signals.append(
+                RiskSignal(
+                    code="PRIVILEGE_CHANGE",
+                    label="Unusual privilege change",
+                    score=30,
+                    evidence="The request attempts to modify identity privileges outside the established profile.",
+                )
+            )
+        if event.attributes.get("known_malicious_indicator"):
+            signals.append(
+                RiskSignal(
+                    code="MALICIOUS_INDICATOR",
+                    label="Known malicious indicator",
+                    score=40,
+                    evidence="The source or request indicator matched the local authorized simulation deny-list.",
+                )
+            )
+        if event.attributes.get("baseline_deviation"):
+            signals.append(
+                RiskSignal(
+                    code="BEHAVIORAL_ANOMALY",
+                    label="Behavioral baseline deviation",
+                    score=20,
+                    evidence="Statistical request behavior exceeded the configured local baseline.",
+                )
+            )
 
         score = min(sum(signal.score for signal in signals), 100)
-        if score >= 80:
+        if score >= self.containment_threshold:
             level = RiskLevel.CRITICAL
             recommendation = "Contain this session and preserve access for unrelated sessions."
-        elif score >= 60:
+        elif score >= self.high_threshold:
             level = RiskLevel.HIGH
             recommendation = "Block the request and request operator review."
-        elif score >= 30:
+        elif score >= self.moderate_threshold:
             level = RiskLevel.MEDIUM
             recommendation = "Continue observation and retain evidence."
         else:
