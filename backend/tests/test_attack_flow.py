@@ -68,3 +68,11 @@ def test_checked_in_contract_covers_every_runtime_path() -> None:
     runtime = create_app(":memory:").openapi()
 
     assert set(checked_in["paths"]) == set(runtime["paths"])
+    for path, runtime_path in runtime["paths"].items():
+        checked_path = checked_in["paths"][path]
+        assert set(checked_path) == set(runtime_path), path
+        for method, runtime_operation in runtime_path.items():
+            checked_operation = checked_path[method]
+            assert ("requestBody" in checked_operation) == ("requestBody" in runtime_operation), f"{method} {path}"
+            if method != "get" and "200" in runtime_operation["responses"] and "content" in runtime_operation["responses"]["200"]:
+                assert "content" in checked_operation["responses"]["200"], f"{method} {path} missing response schema"

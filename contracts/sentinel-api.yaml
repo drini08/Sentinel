@@ -43,7 +43,11 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/RequestEvent" }
       responses:
-        "200": { description: Authenticated event evaluation result. }
+        "200":
+          description: Authenticated event evaluation result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GatewayDecision" }
         "401": { description: Valid ingestion token required. }
   /api/v1/incidents:
     get:
@@ -57,8 +61,17 @@ paths:
       parameters:
         - { in: path, name: incident_id, required: true, schema: { type: string } }
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IncidentUpdate" }
       responses:
-        "200": { description: Updated incident status. }
+        "200":
+          description: Updated incident status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Incident" }
         "403": { description: Operator or admin role required. }
         "404": { description: Incident not found. }
   /api/v1/incidents/{incident_id}/evidence:
@@ -101,8 +114,17 @@ paths:
           name: X-Operator-Role
           required: true
           schema: { type: string, enum: [operator, admin] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RuleCreate" }
       responses:
-        "200": { description: Enforced rule or automatically rolled-back rule. }
+        "200":
+          description: Enforced rule or automatically rolled-back rule.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirewallRule" }
         "422": { description: Unsafe, duplicate, or invalid rule. }
   /api/v1/firewall/rules/{rule_id}:
     delete:
@@ -111,7 +133,11 @@ paths:
         - { in: path, name: rule_id, required: true, schema: { type: string } }
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
       responses:
-        "200": { description: Rule marked removed and audited. }
+        "200":
+          description: Rule marked removed and audited.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirewallRule" }
         "404": { description: Firewall rule not found. }
   /api/v1/sessions:
     get:
@@ -124,16 +150,34 @@ paths:
       parameters:
         - { in: path, name: session_id, required: true, schema: { type: string } }
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionControl" }
       responses:
-        "200": { description: Session revoked and audited. }
+        "200":
+          description: Session revoked and audited.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionProfile" }
   /api/v1/sessions/{session_id}/restore:
     post:
       operationId: restoreSession
       parameters:
         - { in: path, name: session_id, required: true, schema: { type: string } }
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionControl" }
       responses:
-        "200": { description: Session restored and audited. }
+        "200":
+          description: Session restored and audited.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionProfile" }
   /api/v1/services:
     get:
       operationId: listProtectedServices
@@ -150,7 +194,11 @@ paths:
       parameters:
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
       responses:
-        "200": { description: Persisted continuity verification result. }
+        "200":
+          description: Persisted continuity verification result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthCheck" }
   /api/v1/policies:
     get:
       operationId: listPolicies
@@ -162,8 +210,17 @@ paths:
       parameters:
         - { in: path, name: policy_id, required: true, schema: { type: string } }
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PolicyUpdate" }
       responses:
-        "200": { description: Updated detection and response policy. }
+        "200":
+          description: Updated detection and response policy.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Policy" }
         "422": { description: Thresholds are invalid or out of order. }
   /api/v1/simulations/compromised-session:
     post:
@@ -183,7 +240,11 @@ paths:
       parameters:
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
       responses:
-        "200": { description: An overrestrictive test rule rolled back after failed continuity verification. }
+        "200":
+          description: An overrestrictive test rule rolled back after failed continuity verification.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FirewallRule" }
   /api/v1/facility/snapshot:
     get:
       operationId: getFacilitySnapshot
@@ -240,6 +301,90 @@ paths:
               schema: { $ref: "#/components/schemas/FacilityScenarioResult" }
 components:
   schemas:
+    IncidentUpdate:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [active, contained, investigating, resolved] }
+        resolution: { type: [string, "null"], maxLength: 1000 }
+    RuleCreate:
+      type: object
+      additionalProperties: false
+      required: [target_type, target_value, justification]
+      properties:
+        target_type: { type: string, enum: [ip, endpoint, ip_endpoint] }
+        target_value: { type: string, minLength: 1, maxLength: 240 }
+        action: { type: string, const: block, default: block }
+        justification: { type: string, minLength: 8, maxLength: 500 }
+        duration_seconds: { type: integer, minimum: 30, maximum: 86400, default: 900 }
+        incident_id: { type: [string, "null"] }
+        simulate_continuity_failure: { type: boolean, default: false }
+    FirewallRule:
+      type: object
+      required: [rule_id, target_type, target_value, action, justification, created_at, expires_at, status, created_by]
+      properties:
+        rule_id: { type: string }
+        target_type: { type: string, enum: [ip, endpoint, ip_endpoint] }
+        target_value: { type: string }
+        action: { type: string, const: block }
+        justification: { type: string }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        status: { type: string, enum: [active, expired, removed, rolled_back] }
+        incident_id: { type: [string, "null"] }
+        created_by: { type: string }
+    SessionControl:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 8, maxLength: 500 }
+    SessionProfile:
+      type: object
+      required: [session_id, user_id, trusted_source_ip, trusted_device_id, status]
+      properties:
+        session_id: { type: string }
+        user_id: { type: string }
+        trusted_source_ip: { type: string }
+        trusted_device_id: { type: string }
+        status: { type: string, enum: [active, restricted, revoked] }
+    HealthCheck:
+      type: object
+      required: [check_id, service_id, checked_at, status, response_time_ms, transaction_succeeded, detail]
+      properties:
+        check_id: { type: string }
+        service_id: { type: string }
+        checked_at: { type: string, format: date-time }
+        status: { type: string, enum: [healthy, degraded, unavailable] }
+        response_time_ms: { type: integer, minimum: 0 }
+        transaction_succeeded: { type: boolean }
+        rule_id: { type: [string, "null"] }
+        detail: { type: string }
+    PolicyUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled: { type: [boolean, "null"] }
+        moderate_threshold: { type: [integer, "null"], minimum: 0, maximum: 100 }
+        high_threshold: { type: [integer, "null"], minimum: 0, maximum: 100 }
+        critical_threshold: { type: [integer, "null"], minimum: 0, maximum: 100 }
+        automatic_containment: { type: [boolean, "null"] }
+        require_corroboration: { type: [boolean, "null"] }
+    Policy:
+      type: object
+      required: [policy_id, name, description, enabled, moderate_threshold, high_threshold, critical_threshold, automatic_containment, require_corroboration, updated_at]
+      properties:
+        policy_id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        enabled: { type: boolean }
+        moderate_threshold: { type: integer, minimum: 0, maximum: 100 }
+        high_threshold: { type: integer, minimum: 0, maximum: 100 }
+        critical_threshold: { type: integer, minimum: 0, maximum: 100 }
+        automatic_containment: { type: boolean }
+        require_corroboration: { type: boolean }
+        updated_at: { type: string, format: date-time }
     RequestEvent:
       type: object
       additionalProperties: false

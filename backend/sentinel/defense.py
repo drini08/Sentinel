@@ -195,14 +195,18 @@ class DefenseService:
         return active
 
     def matching_rule(self, event: RequestEvent) -> FirewallRule | None:
+        try:
+            source_ip = str(ip_address(event.source_ip.strip()))
+        except ValueError:
+            source_ip = event.source_ip.strip()
         for rule in self.active_rules():
-            if rule.target_type == "ip" and rule.target_value == event.source_ip:
+            if rule.target_type == "ip" and rule.target_value == source_ip:
                 return rule
             if rule.target_type == "endpoint" and rule.target_value == event.path:
                 return rule
             if rule.target_type == "ip_endpoint":
                 ip, path = rule.target_value.split("|", 1)
-                if ip == event.source_ip and path == event.path:
+                if ip == source_ip and path == event.path:
                     return rule
         return None
 

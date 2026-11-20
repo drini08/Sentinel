@@ -34,6 +34,31 @@ def test_scoped_firewall_rule_is_enforced_for_matching_ip_only() -> None:
     assert allowed.allowed is True
 
 
+def test_ipv6_rule_matches_equivalent_source_formatting() -> None:
+    from sentinel.defense import DefenseService
+    from sentinel.models import RuleCreate
+    from sentinel.security import SecurityService
+    from sentinel.store import EvidenceStore
+
+    store = EvidenceStore(":memory:")
+    defense = DefenseService(store)
+    security = SecurityService(store, defense=defense)
+    defense.create_rule(RuleCreate(
+        target_type="ip",
+        target_value="2001:db8::1",
+        justification="Equivalent IPv6 representation test.",
+    ))
+
+    decision = security.evaluate(RequestEvent(
+        session_id="session-ipv6", user_id="operator", service_id="dardania-water-api",
+        method="GET", path="/telemetry/pressure",
+        source_ip="2001:0db8:0:0:0:0:0:1", device_id="unknown",
+    ))
+
+    assert decision.allowed is False
+    assert decision.response_status == 403
+
+
 def test_overrestrictive_rule_is_rolled_back_and_audited() -> None:
     from sentinel.defense import DefenseService
     from sentinel.models import RuleCreate
@@ -145,6 +170,20 @@ def test_policy_thresholds_must_remain_ordered() -> None:
 
     assert response.status_code == 422
     assert "ordered" in response.json()["detail"]
+
+
+def test_policy_thresholds_must_be_strictly_increasing() -> None:
+    app = TestClient(create_app(":memory:"))
+    policy = app.get("/api/v1/policies").json()[0]
+
+    response = app.patch(
+        f"/api/v1/policies/{policy['policy_id']}",
+        json={"moderate_threshold": 60, "high_threshold": 60},
+        headers={"X-Operator-Role": "operator"},
+    )
+
+    assert response.status_code == 422
+    assert "strictly increasing" in response.json()["detail"]
 
 
 def test_facility_control_plane_cannot_be_blocked() -> None:
