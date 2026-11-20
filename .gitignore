@@ -16,6 +16,7 @@ __pycache__/
 # Local data and environment
 *.db
 *.sqlite3
+.sentinel-*.log
 .env
 .env.*
 !.env.example
