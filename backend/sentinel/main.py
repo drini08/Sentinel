@@ -247,7 +247,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         changes = update.model_dump(exclude_none=True)
         thresholds = [changes.get("moderate_threshold", current.moderate_threshold), changes.get("high_threshold", current.high_threshold), changes.get("critical_threshold", current.critical_threshold)]
         if not thresholds[0] < thresholds[1] < thresholds[2]:
-            raise HTTPException(status_code=422, detail="Thresholds must be strictly increasing: moderate < high < critical")
+            raise HTTPException(status_code=422, detail="Thresholds must be ordered and strictly increasing: moderate < high < critical")
         policy = current.model_copy(update={**changes, "updated_at": utc_now()})
         store.save_policy(policy)
         defense.audit("policy", "policy_updated", operator_id, "policy", policy_id, "saved", "Response policy configuration updated.", changes=changes)
