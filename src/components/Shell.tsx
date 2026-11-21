@@ -5,13 +5,8 @@ import { Brand } from "./Brand";
 const navigation = [
   ["Overview", "/"],
   ["Facility", "/facility"],
-  ["Threats", "/threats"],
-  ["Incidents", "/incidents"],
-  ["Defense", "/defense"],
-  ["Services", "/services"],
-  ["Policies", "/policies"],
-  ["Logs", "/logs"],
-  ["Lab", "/lab"],
+  ["Security", "/security/threats"],
+  ["Demo", "/demo"],
 ];
 
 export function Shell() {
@@ -25,7 +20,7 @@ export function Shell() {
               <NavLink
                 key={to}
                 to={to}
-                end={to === "/"}
+                end={to === "/" || to === "/facility" || to === "/demo"}
                 className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}
               >
                 {label}

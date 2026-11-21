@@ -36,6 +36,8 @@ from .store import EvidenceStore
 from .jury import JuryService
 from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, JuryStatus
 from .jury_store import build_jury_store
+from .satellite import SatelliteService
+from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
 
 
 def default_database_path(vercel: bool) -> Path:
@@ -95,10 +97,26 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         jury_store.latest_jury_run()
     jury = JuryService(facility, jury_store)
     application.state.jury = jury
+    satellite = SatelliteService()
+    application.state.satellite = satellite
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": "sentinel-security-core"}
+
+    @application.get("/api/v1/satellite/status", response_model=SatelliteIntegrationStatus, tags=["satellite"])
+    def satellite_status() -> SatelliteIntegrationStatus:
+        return satellite.status()
+
+    @application.post("/api/v1/satellite/analyze", response_model=SatelliteAnalysisResult, tags=["satellite"])
+    def analyze_satellite_area(request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
+        result = satellite.analyze(request)
+        defense.audit(
+            "satellite", "area_analyzed", "sentinel-satellite-verification", "satellite_analysis",
+            result.analysis_id, "mismatch" if result.mismatch_detected else "consistent",
+            result.observation, source=result.source, change_percent=result.change_percent,
+        )
+        return result
 
     @application.get("/api/v1/jury/status", response_model=JuryStatus, tags=["jury"])
     def jury_status() -> JuryStatus:

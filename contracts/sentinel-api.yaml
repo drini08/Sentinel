@@ -12,6 +12,31 @@ paths:
       responses:
         "200":
           description: Security core is available.
+  /api/v1/satellite/status:
+    get:
+      operationId: getSatelliteIntegrationStatus
+      summary: Report whether Earth Engine and Gemini credentials are configured.
+      responses:
+        "200":
+          description: Satellite verification integration status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SatelliteIntegrationStatus" }
+  /api/v1/satellite/analyze:
+    post:
+      operationId: analyzeSatelliteArea
+      summary: Compare polygon water extent across two periods and reconcile it with SCADA telemetry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SatelliteAnalysisRequest" }
+      responses:
+        "200":
+          description: Earth Engine or deterministic demo analysis with an optional Gemini explanation.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SatelliteAnalysisResult" }
   /api/v1/gateway/evaluate:
     post:
       operationId: evaluateRequest
@@ -352,6 +377,51 @@ paths:
               schema: { $ref: "#/components/schemas/FacilityScenarioResult" }
 components:
   schemas:
+    SatelliteIntegrationStatus:
+      type: object
+      required: [earth_engine_configured, gemini_configured, mode, dataset]
+      properties:
+        earth_engine_configured: { type: boolean }
+        gemini_configured: { type: boolean }
+        mode: { type: string, enum: [live, demo] }
+        dataset: { type: string }
+    SatelliteAnalysisRequest:
+      type: object
+      required: [name, polygon, baseline_start, baseline_end, current_start, current_end, scada_level_percent]
+      properties:
+        name: { type: string }
+        polygon:
+          type: array
+          minItems: 3
+          items:
+            type: array
+            prefixItems: [{ type: number }, { type: number }]
+            minItems: 2
+            maxItems: 2
+        baseline_start: { type: string, format: date }
+        baseline_end: { type: string, format: date }
+        current_start: { type: string, format: date }
+        current_end: { type: string, format: date }
+        scada_level_percent: { type: number, minimum: 0, maximum: 100 }
+    SatelliteAnalysisResult:
+      type: object
+      required: [analysis_id, name, source, baseline_water_km2, current_water_km2, change_percent, scada_level_percent, mismatch_detected, confidence, observation, recommendation, explanation_source]
+      properties:
+        analysis_id: { type: string }
+        name: { type: string }
+        source: { type: string, enum: [earth-engine, demo] }
+        baseline_water_km2: { type: number }
+        current_water_km2: { type: number }
+        change_percent: { type: number }
+        scada_level_percent: { type: number }
+        mismatch_detected: { type: boolean }
+        confidence: { type: number }
+        observation: { type: string }
+        recommendation: { type: string }
+        explanation_source: { type: string, enum: [gemini, deterministic] }
+        baseline_image_url: { type: [string, "null"] }
+        current_image_url: { type: [string, "null"] }
+        imagery_dataset: { type: string }
     IncidentUpdate:
       type: object
       additionalProperties: false

@@ -16,6 +16,7 @@ it("applies the compact application scale to every route", () => {
 
   expect(container.firstElementChild).toHaveClass("app-scale");
   expect(container.firstElementChild).toHaveClass("theme-hybrid");
-  expect(screen.getByRole("link", { name: "Threats" })).toHaveAttribute("href", "/threats");
-  expect(screen.getByRole("link", { name: "Defense" })).toHaveAttribute("href", "/defense");
+  expect(screen.getByRole("link", { name: "Facility" })).toHaveAttribute("href", "/facility");
+  expect(screen.getByRole("link", { name: "Security" })).toHaveAttribute("href", "/security/threats");
+  expect(screen.getByRole("link", { name: "Demo" })).toHaveAttribute("href", "/demo");
 });

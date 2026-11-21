@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "SENTINEL gateway, detection, containment, and incident API"
 requires-python = ">=3.12"
 dependencies = [
+  "earthengine-api>=1.5,<2.0",
   "fastapi>=0.115,<1.0",
   "pydantic>=2.10,<3.0",
   "psycopg[binary]>=3.2,<4.0",
@@ -16,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "httpx>=0.28,<1.0",
+  "httpx2>=2.16,<3.0",
   "pytest>=8.3,<10.0",
 ]
 
