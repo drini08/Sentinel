@@ -36,7 +36,7 @@ from .store import EvidenceStore
 from .jury import JuryService
 from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, JuryStatus
 from .jury_store import build_jury_store
-from .satellite import SatelliteService
+from .satellite import SatelliteLiveError, SatelliteService
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
 
 
@@ -45,6 +45,7 @@ def default_database_path(vercel: bool) -> Path:
 
 
 def production_database_url(vercel: bool, database_url: str | None) -> str | None:
+    # Vercel production requires shared Postgres persistence for jury state.
     if vercel and not database_url:
         raise RuntimeError("DATABASE_URL is required for shared jury state on Vercel")
     return database_url
@@ -69,7 +70,7 @@ def cors_origins() -> list[str]:
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
     vercel_runtime = database_path is None and bool(os.getenv("VERCEL"))
-    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH") or default_database_path(vercel_runtime)
+    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH") or ":memory:"
     store = EvidenceStore(resolved_path)
     defense = DefenseService(store)
     security = SecurityService(store, defense=defense)
@@ -91,10 +92,13 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     application.state.defense = defense
     facility = FacilityService(FacilityEngine(), security)
     application.state.facility = facility
-    database_url = production_database_url(vercel_runtime, None if database_path is not None else os.getenv("DATABASE_URL"))
+    configured_database_url = None if database_path is not None else (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("POSTGRES_PRISMA_URL")
+    )
+    database_url = production_database_url(vercel_runtime, configured_database_url)
     jury_store = build_jury_store(store, database_url)
-    if vercel_runtime:
-        jury_store.latest_jury_run()
     jury = JuryService(facility, jury_store)
     application.state.jury = jury
     satellite = SatelliteService()
@@ -108,9 +112,16 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     def satellite_status() -> SatelliteIntegrationStatus:
         return satellite.status()
 
+    @application.get("/api/v1/satellite/auth-status", tags=["satellite"])
+    def satellite_auth_status(x_vercel_oidc_token: str | None = Header(default=None)) -> dict[str, bool]:
+        return {"request_oidc_token": bool(x_vercel_oidc_token), "environment_oidc_token": bool(os.getenv("VERCEL_OIDC_TOKEN"))}
+
     @application.post("/api/v1/satellite/analyze", response_model=SatelliteAnalysisResult, tags=["satellite"])
-    def analyze_satellite_area(request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
-        result = satellite.analyze(request)
+    def analyze_satellite_area(request: SatelliteAnalysisRequest, x_vercel_oidc_token: str | None = Header(default=None)) -> SatelliteAnalysisResult:
+        try:
+            result = satellite.analyze(request, x_vercel_oidc_token)
+        except SatelliteLiveError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
         defense.audit(
             "satellite", "area_analyzed", "sentinel-satellite-verification", "satellite_analysis",
             result.analysis_id, "mismatch" if result.mismatch_detected else "consistent",

@@ -62,3 +62,25 @@ def test_gemini_structured_explanation_is_flattened_for_operators() -> None:
         "action_items": ["Check telemetry.", "Inspect the reservoir."],
         "priority": 1,
     }) == "Check telemetry.; Inspect the reservoir."
+
+
+def test_configured_live_analysis_does_not_silently_fallback(monkeypatch) -> None:
+    monkeypatch.setenv("EARTH_ENGINE_PROJECT", "test-project")
+    monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64", raising=False)
+    service = SatelliteService()
+    monkeypatch.setattr(service, "_earth_engine_metrics", lambda request: (_ for _ in ()).throw(RuntimeError("disabled")))
+
+    import pytest
+    with pytest.raises(RuntimeError, match="Earth Engine analysis is unavailable"):
+        service.analyze(type("Request", (), {"model_dump": lambda self, mode: {}, "polygon": POLYGON, "scada_level_percent": 82})())
+
+
+def test_federation_configuration_requires_all_runtime_values(monkeypatch) -> None:
+    service = SatelliteService()
+    monkeypatch.delenv("GCP_PROJECT_NUMBER", raising=False)
+    monkeypatch.delenv("GCP_WORKLOAD_IDENTITY_POOL_ID", raising=False)
+    monkeypatch.delenv("GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID", raising=False)
+    monkeypatch.delenv("GCP_SERVICE_ACCOUNT_EMAIL", raising=False)
+    import pytest
+    with pytest.raises(RuntimeError, match="Vercel OIDC federation is not fully configured"):
+        service._vercel_federated_credentials("test-token")

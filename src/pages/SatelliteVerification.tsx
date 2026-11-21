@@ -64,6 +64,5 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
         </div>}
       </aside>
     </div>
-    {result && <section className="satellite-comparison"><article><span>Baseline · {periods.baseline_start} to {periods.baseline_end}</span>{result.baseline_image_url ? <img src={result.baseline_image_url} alt="Baseline satellite observation" /> : <div className="satellite-placeholder baseline"><b>Historical composite</b><small>{periods.baseline_start} — {periods.baseline_end}</small></div>}</article><article><span>Current · {periods.current_start} to {periods.current_end}</span>{result.current_image_url ? <img src={result.current_image_url} alt="Current satellite observation" /> : <div className="satellite-placeholder current"><b>Recent composite</b><small>{periods.current_start} — {periods.current_end}</small></div>}</article></section>}
   </div>;
 }

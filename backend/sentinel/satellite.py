@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import json
 import os
+import base64
+from urllib.parse import urlencode
 from hashlib import sha256
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
+
+
+class SatelliteLiveError(RuntimeError):
+    """Raised when configured live Earth Engine analysis cannot be completed."""
 
 
 class SatelliteService:
@@ -24,11 +30,17 @@ class SatelliteService:
             mode="live" if self.project else "demo",
         )
 
-    def analyze(self, request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
-        try:
-            metrics = self._earth_engine_metrics(request) if self.project else self._demo_metrics(request)
-            source = "earth-engine" if self.project else "demo"
-        except Exception:
+    def analyze(self, request: SatelliteAnalysisRequest, vercel_oidc_token: str | None = None) -> SatelliteAnalysisResult:
+        if self.project:
+            try:
+                metrics = self._earth_engine_metrics(request, vercel_oidc_token)
+            except SatelliteLiveError:
+                raise
+            except Exception as error:
+                print(f"Earth Engine query error: {type(error).__name__}: {error}", flush=True)
+                raise SatelliteLiveError(f"Earth Engine query failed ({type(error).__name__})") from error
+            source = "earth-engine"
+        else:
             metrics = self._demo_metrics(request)
             source = "demo"
 
@@ -77,10 +89,33 @@ class SatelliteService:
             "current_image_url": None,
         }
 
-    def _earth_engine_metrics(self, request: SatelliteAnalysisRequest) -> dict[str, float | str | None]:
+    def _earth_engine_metrics(self, request: SatelliteAnalysisRequest, vercel_oidc_token: str | None = None) -> dict[str, float | str | None]:
         import ee  # type: ignore[import-untyped]
 
-        ee.Initialize(project=self.project)
+        credentials_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64")
+        if credentials_json:
+            from google.oauth2.service_account import Credentials
+
+            decoded = base64.b64decode(credentials_json, validate=True)
+            service_account_info = json.loads(decoded.decode("utf-8"))
+            credentials = Credentials.from_service_account_info(
+                service_account_info,
+                scopes=["https://www.googleapis.com/auth/earthengine", "https://www.googleapis.com/auth/cloud-platform"],
+            )
+            try:
+                ee.Initialize(credentials=credentials, project=self.project)
+            except Exception as error:
+                raise SatelliteLiveError(f"Earth Engine initialization failed ({type(error).__name__})") from error
+        elif vercel_oidc_token or os.getenv("VERCEL_OIDC_TOKEN"):
+            credentials = self._vercel_federated_credentials(vercel_oidc_token or os.environ["VERCEL_OIDC_TOKEN"])
+            try:
+                ee.Initialize(credentials=credentials, project=self.project)
+            except Exception as error:
+                raise SatelliteLiveError(f"Earth Engine initialization failed ({type(error).__name__})") from error
+        else:
+            # Local development keeps supporting GOOGLE_APPLICATION_CREDENTIALS,
+            # Earth Engine's persisted OAuth credentials, and ADC.
+            ee.Initialize(project=self.project)
         geometry = ee.Geometry.Polygon([request.polygon])
 
         def composite(start: str, end: str):
@@ -97,23 +132,89 @@ class SatelliteService:
             water = image.normalizedDifference(["B3", "B8"]).gt(0.12)
             area = ee.Image.pixelArea().updateMask(water).reduceRegion(
                 reducer=ee.Reducer.sum(), geometry=geometry, scale=20, maxPixels=10_000_000
-            ).get("area")
+            ).get("area", 0)
             return float(ee.Number(area).getInfo() or 0) / 1_000_000
 
-        baseline_image = composite(request.baseline_start.isoformat(), request.baseline_end.isoformat())
-        current_image = composite(request.current_start.isoformat(), request.current_end.isoformat())
-        baseline = water_area(baseline_image)
-        current = water_area(current_image)
+        try:
+            baseline_image = composite(request.baseline_start.isoformat(), request.baseline_end.isoformat())
+            current_image = composite(request.current_start.isoformat(), request.current_end.isoformat())
+        except Exception as error:
+            raise SatelliteLiveError("Earth Engine composite failed") from error
+        try:
+            baseline = water_area(baseline_image)
+            current = water_area(current_image)
+        except Exception as error:
+            raise SatelliteLiveError("Earth Engine water-mask reduction failed") from error
         if baseline <= 0:
             raise ValueError("No water pixels were available in the baseline range")
-        visualization = {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000, "dimensions": 900, "region": geometry}
+        visualization = {
+            "bands": ["B4", "B3", "B2"],
+            "min": 0,
+            "max": 3000,
+            "dimensions": 900,
+        }
+        try:
+            baseline_image_url = baseline_image.getThumbURL(visualization)
+            current_image_url = current_image.getThumbURL(visualization)
+        except Exception as error:
+            print(f"Earth Engine thumbnail unavailable: {type(error).__name__}", flush=True)
+            baseline_image_url = None
+            current_image_url = None
         return {
             "baseline_water_km2": round(baseline, 2),
             "current_water_km2": round(current, 2),
             "change_percent": round((current - baseline) / baseline * 100, 1),
-            "baseline_image_url": baseline_image.getThumbURL(visualization),
-            "current_image_url": current_image.getThumbURL(visualization),
+            "baseline_image_url": baseline_image_url,
+            "current_image_url": current_image_url,
         }
+
+    def _vercel_federated_credentials(self, subject_token: str):
+        from google.oauth2.credentials import Credentials
+
+        project_number = os.getenv("GCP_PROJECT_NUMBER")
+        pool_id = os.getenv("GCP_WORKLOAD_IDENTITY_POOL_ID")
+        provider_id = os.getenv("GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID")
+        service_account = os.getenv("GCP_SERVICE_ACCOUNT_EMAIL")
+        if not all((project_number, pool_id, provider_id, service_account)):
+            raise SatelliteLiveError("Vercel OIDC federation is not fully configured")
+        audience = (
+            f"//iam.googleapis.com/projects/{project_number}/locations/global/"
+            f"workloadIdentityPools/{pool_id}/providers/{provider_id}"
+        )
+        token_body = urlencode({
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "audience": audience,
+            "scope": "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/earthengine",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "subject_token": subject_token,
+        }).encode()
+        try:
+            with urlopen(Request(
+                "https://sts.googleapis.com/v1/token", data=token_body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST",
+            ), timeout=15) as response:
+                federated = json.loads(response.read())
+        except HTTPError as error:
+            raise SatelliteLiveError(f"Google STS exchange failed (HTTP {error.code})") from error
+        access_body = json.dumps({
+            "scope": [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/earthengine",
+            ],
+            "lifetime": "3600s",
+        }).encode()
+        try:
+            with urlopen(Request(
+                f"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{service_account}:generateAccessToken",
+                data=access_body,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {federated['access_token']}"},
+                method="POST",
+            ), timeout=15) as response:
+                access = json.loads(response.read())
+        except HTTPError as error:
+            raise SatelliteLiveError(f"Google service-account impersonation failed (HTTP {error.code})") from error
+        return Credentials(token=access["accessToken"])
 
     def _explain(
         self,
