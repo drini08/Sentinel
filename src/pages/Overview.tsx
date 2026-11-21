@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { DefenseNetwork } from "../components/Visuals";
 import { Eyebrow } from "../components/UI";
@@ -27,27 +26,6 @@ const capabilities = [
 ];
 
 export function Overview() {
-  useEffect(() => {
-    let frame = 0;
-    let previousTime = performance.now();
-    const pixelsPerSecond = 30;
-    const animate = (time: number) => {
-      const elapsed = Math.min(time - previousTime, 64);
-      previousTime = time;
-      const scroller = document.scrollingElement ?? document.documentElement;
-      const maxScroll = Math.max(0, Math.max(scroller.scrollHeight, document.body.scrollHeight) - window.innerHeight);
-      if (maxScroll === 0) {
-        frame = window.requestAnimationFrame(animate);
-        return;
-      }
-      if (window.scrollY >= maxScroll - 1) return;
-      window.scrollTo(0, Math.min(maxScroll, window.scrollY + (pixelsPerSecond * elapsed) / 1000));
-      frame = window.requestAnimationFrame(animate);
-    };
-    frame = window.requestAnimationFrame(animate);
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
   return (
     <div className="animate-enter overview-v2 overview-apple">
       <section className="overview-hero">
