@@ -54,7 +54,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
         {result && <div className={`panel satellite-result ${result.mismatch_detected ? "is-mismatch" : ""}`}>
           <div className="satellite-result-head">{result.mismatch_detected ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}<div><span>{result.mismatch_detected ? "Mismatch detected" : "Evidence consistent"}</span><strong>{result.change_percent > 0 ? "+" : ""}{result.change_percent}% water extent</strong></div></div>
           <div className="satellite-metrics"><div><span>Baseline</span><strong>{result.baseline_water_km2} km²</strong></div><div><span>Current</span><strong>{result.current_water_km2} km²</strong></div><div><span>SCADA</span><strong>{result.scada_level_percent}%</strong></div></div>
-          <p>{result.observation}</p><div className="satellite-recommendation"><Sparkles size={14} /><span>{result.recommendation}</span></div>
+          <p>{result.observation}</p><div className="satellite-recommendation"><Sparkles size={14} /><ul>{result.recommendation.split(";").map((item) => item.trim()).filter(Boolean).slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul></div>
           <small>{result.source === "earth-engine" ? "Earth Engine measurement" : "Deterministic demo measurement"} · {result.explanation_source === "gemini" ? "Gemini explanation" : "policy explanation"} · confidence {Math.round(result.confidence * 100)}%</small>
         </div>}
       </aside>

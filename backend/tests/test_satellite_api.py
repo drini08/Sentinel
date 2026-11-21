@@ -54,6 +54,11 @@ def test_satellite_analysis_compares_polygon_evidence_with_scada(monkeypatch) ->
 
 def test_gemini_structured_explanation_is_flattened_for_operators() -> None:
     assert SatelliteService._operator_text({
+        "baseline_water_area_km2": 1.35,
         "summary": "Water extent declined.",
         "details": ["SCADA remains high.", "Check telemetry."],
-    }) == "Water extent declined.; SCADA remains high.; Check telemetry."
+    }) == "Water extent declined."
+    assert SatelliteService._operator_text({
+        "action_items": ["Check telemetry.", "Inspect the reservoir."],
+        "priority": 1,
+    }) == "Check telemetry.; Inspect the reservoir."

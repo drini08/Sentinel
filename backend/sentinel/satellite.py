@@ -126,7 +126,9 @@ class SatelliteService:
             return fallback_observation, fallback_recommendation, "deterministic"
         prompt = (
             "You are explaining remote-sensing evidence for a water utility operator. "
-            "Return JSON with observation and recommendation. Do not claim the satellite proves a cyberattack "
+            "Return JSON with an observation string of at most 24 words and a recommendation array containing "
+            "at most 3 actions of at most 12 words each. Be concise. Do not repeat the raw metric values. "
+            "Do not claim the satellite proves a cyberattack "
             "and do not recommend automatic physical control. "
             f"Site: {request.name}; baseline water area: {metrics['baseline_water_km2']} km2; "
             f"current water area: {metrics['current_water_km2']} km2; change: {metrics['change_percent']}%; "
@@ -168,8 +170,12 @@ class SatelliteService:
         if isinstance(value, list):
             return "; ".join(filter(None, (SatelliteService._operator_text(item) for item in value)))
         if isinstance(value, dict):
-            preferred = ("summary", "assessment", "text", "message", "rationale", "action")
+            preferred = (
+                "summary", "assessment", "interpretation", "discrepancy", "analysis", "text", "message",
+                "rationale", "action", "action_items", "actions", "steps", "recommendations",
+            )
             ordered = [value[key] for key in preferred if key in value]
-            ordered.extend(item for key, item in value.items() if key not in preferred)
+            if not ordered:
+                ordered = [item for item in value.values() if isinstance(item, (str, list, dict))]
             return "; ".join(dict.fromkeys(filter(None, (SatelliteService._operator_text(item) for item in ordered))))
         return str(value).strip() if value is not None else ""
