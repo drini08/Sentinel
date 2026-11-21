@@ -80,6 +80,7 @@ class VisualInspectionService:
             if text.startswith("```"):
                 text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
             result = json.loads(text)
+            result["asset_type"] = self._capitalize(result.get("asset_type", "Unknown infrastructure asset"))
             result["summary"] = self._shorten(result.get("summary", "Visible condition requires review"), 10)
             result["findings"] = [self._shorten(item, 5) for item in result.get("findings", [])[:2]]
             result["risks"] = [self._shorten(item, 5) for item in result.get("risks", [])[:2]]
@@ -101,4 +102,9 @@ class VisualInspectionService:
     def _shorten(value: object, limit: int) -> str:
         words = str(value).strip().split()
         return " ".join(words[:limit]).rstrip(".,;:")
+
+    @staticmethod
+    def _capitalize(value: object) -> str:
+        text = str(value).strip()
+        return text[:1].upper() + text[1:] if text else "Unknown infrastructure asset"
 
