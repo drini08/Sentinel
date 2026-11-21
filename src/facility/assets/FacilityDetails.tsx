@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 const metal = { color: "#263d42", metalness: 0.78, roughness: 0.3 } as const;
 const darkMetal = { color: "#14272b", metalness: 0.72, roughness: 0.38 } as const;
 
@@ -61,6 +63,38 @@ function SafetyBarriers() {
   </group>;
 }
 
+function SecurityPerimeter() {
+  const xPosts = [-17.5, -15, -12.5, -10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5];
+  const zPosts = [-11, -8.5, -6, -3.5, -1, 1.5, 4, 6.5, 9, 11];
+  return <group position={[2, 0, 0]}>
+    <mesh receiveShadow position={[0, .13, -11]}><boxGeometry args={[35.2, .26, .28]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
+    <mesh receiveShadow position={[0, .13, 11]}><boxGeometry args={[35.2, .26, .28]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
+    <mesh receiveShadow position={[-17.5, .13, 0]}><boxGeometry args={[.28, .26, 22.2]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
+    <mesh receiveShadow position={[17.5, .13, -5.8]}><boxGeometry args={[.28, .26, 10.5]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
+    <mesh receiveShadow position={[17.5, .13, 6.4]}><boxGeometry args={[.28, .26, 9.3]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
+    {[-11, 11].map((z) => <group key={z}>
+      {xPosts.map((x) => <mesh key={`${z}-${x}`} castShadow position={[x, .8, z]}><boxGeometry args={[.09, 1.35, .09]} /><meshStandardMaterial {...metal} /></mesh>)}
+      {[.58, 1.05, 1.43].map((y) => <mesh key={`${z}-${y}`} position={[0, y, z]}><boxGeometry args={[35, .045, .055]} /><meshStandardMaterial color="#34545a" metalness={.85} /></mesh>)}
+    </group>)}
+    {[-17.5, 17.5].map((x) => <group key={x}>
+      {zPosts.filter((z) => x < 0 || Math.abs(z) > 2.5).map((z) => <mesh key={`${x}-${z}`} castShadow position={[x, .8, z]}><boxGeometry args={[.09, 1.35, .09]} /><meshStandardMaterial {...metal} /></mesh>)}
+      {[.58, 1.05, 1.43].map((y) => <Fragment key={`${x}-${y}`}>
+        {x < 0 ? <mesh position={[x, y, 0]}><boxGeometry args={[.055, .045, 22]} /><meshStandardMaterial color="#34545a" metalness={.85} /></mesh> : <group><mesh position={[x, y, -6.7]}><boxGeometry args={[.055, .045, 8.6]} /><meshStandardMaterial color="#34545a" metalness={.85} /></mesh><mesh position={[x, y, 6.7]}><boxGeometry args={[.055, .045, 8.6]} /><meshStandardMaterial color="#34545a" metalness={.85} /></mesh></group>}
+      </Fragment>)}
+    </group>)}
+    {[-17.5, 17.5].flatMap((x) => [-11, 11].map((z) => <group key={`${x}-${z}`} position={[x, 0, z]}>
+      <mesh castShadow position={[0, 1.05, 0]}><boxGeometry args={[.22, 1.9, .22]} /><meshStandardMaterial {...darkMetal} /></mesh>
+      <mesh position={[0, 2.05, 0]}><sphereGeometry args={[.15, 12, 8]} /><meshBasicMaterial color="#57d9d7" /></mesh>
+    </group>))}
+    <group position={[17.5, 0, 0]}>
+      <mesh castShadow position={[0, 1.1, -2.15]}><boxGeometry args={[.3, 2.05, .3]} /><meshStandardMaterial {...darkMetal} /></mesh>
+      <mesh castShadow position={[0, 1.1, 2.15]}><boxGeometry args={[.3, 2.05, .3]} /><meshStandardMaterial {...darkMetal} /></mesh>
+      <mesh position={[0, 2.05, 0]}><boxGeometry args={[.24, .15, 4.25]} /><meshStandardMaterial color="#31545a" metalness={.8} /></mesh>
+      <mesh position={[0, 2.05, 0]}><boxGeometry args={[.27, .06, 1.35]} /><meshBasicMaterial color="#55d7d5" /></mesh>
+    </group>
+  </group>;
+}
+
 export function FacilityDetails() {
   return <group>
     <group position={[-8.8, 0, 5.1]}><ChemicalTank position={[-.55, 0, 0]} /><ChemicalTank position={[.55, 0, 0]} /></group>
@@ -70,6 +104,8 @@ export function FacilityDetails() {
     <MaintenanceYard />
     <PerimeterLights />
     <SafetyBarriers />
+    <SecurityPerimeter />
   </group>;
 }
+
 
