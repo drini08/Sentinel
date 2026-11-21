@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from hashlib import sha256
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
@@ -15,7 +15,7 @@ class SatelliteService:
     def __init__(self) -> None:
         self.project = os.getenv("EARTH_ENGINE_PROJECT")
         self.gemini_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 
     def status(self) -> SatelliteIntegrationStatus:
         return SatelliteIntegrationStatus(
@@ -133,20 +133,43 @@ class SatelliteService:
             f"SCADA level: {request.scada_level_percent}%."
         )
         body = json.dumps({
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.1},
+            "model": self.gemini_model,
+            "input": prompt + " Return only the JSON object, without Markdown fences.",
+            "store": False,
+            "generation_config": {"temperature": 0.1, "thinking_level": "low"},
         }).encode()
         api_request = Request(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}",
+            "https://generativelanguage.googleapis.com/v1beta/interactions",
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "x-goog-api-key": self.gemini_key},
             method="POST",
         )
         try:
-            with urlopen(api_request, timeout=12) as response:
+            with urlopen(api_request, timeout=45) as response:
                 payload = json.loads(response.read())
-            content = payload["candidates"][0]["content"]["parts"][0]["text"]
-            explanation = json.loads(content)
-            return explanation["observation"], explanation["recommendation"], "gemini"
-        except (KeyError, TypeError, ValueError, URLError, TimeoutError):
+            model_step = next(step for step in reversed(payload["steps"]) if step.get("type") == "model_output")
+            content = next(item["text"] for item in model_step["content"] if item.get("type") == "text")
+            cleaned = content.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+            explanation = json.loads(cleaned)
+            observation = self._operator_text(explanation["observation"])
+            recommendation = self._operator_text(explanation["recommendation"])
+            if not observation or not recommendation:
+                raise ValueError("Gemini returned an empty explanation")
+            return observation, recommendation, "gemini"
+        except (HTTPError, KeyError, StopIteration, TypeError, ValueError, URLError, TimeoutError):
             return fallback_observation, fallback_recommendation, "deterministic"
+
+    @staticmethod
+    def _operator_text(value: object) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, list):
+            return "; ".join(filter(None, (SatelliteService._operator_text(item) for item in value)))
+        if isinstance(value, dict):
+            preferred = ("summary", "assessment", "text", "message", "rationale", "action")
+            ordered = [value[key] for key in preferred if key in value]
+            ordered.extend(item for key, item in value.items() if key not in preferred)
+            return "; ".join(dict.fromkeys(filter(None, (SatelliteService._operator_text(item) for item in ordered))))
+        return str(value).strip() if value is not None else ""

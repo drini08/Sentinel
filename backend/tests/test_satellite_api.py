@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from sentinel.main import create_app
+from sentinel.satellite import SatelliteService
 
 
 POLYGON = [
@@ -49,3 +50,10 @@ def test_satellite_analysis_compares_polygon_evidence_with_scada(monkeypatch) ->
     assert result["change_percent"] < -8
     assert result["imagery_dataset"] == "COPERNICUS/S2_SR_HARMONIZED"
     assert "SCADA reports 82%" in result["observation"]
+
+
+def test_gemini_structured_explanation_is_flattened_for_operators() -> None:
+    assert SatelliteService._operator_text({
+        "summary": "Water extent declined.",
+        "details": ["SCADA remains high.", "Check telemetry."],
+    }) == "Water extent declined.; SCADA remains high.; Check telemetry."

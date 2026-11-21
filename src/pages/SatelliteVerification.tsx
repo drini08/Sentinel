@@ -12,6 +12,10 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scadaLevel, setScadaLevel] = useState(82);
+  const [periods, setPeriods] = useState({
+    baseline_start: "2025-06-01", baseline_end: "2025-08-31",
+    current_start: "2026-06-01", current_end: "2026-08-31",
+  });
   useEffect(() => { void api.getStatus().then(setStatus).catch(() => setStatus(null)); }, [api]);
 
   const analyze = async () => {
@@ -21,8 +25,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
       setResult(await api.analyze({
         name: "Batlava source reservoir",
         polygon,
-        baseline_start: "2025-06-01", baseline_end: "2025-08-31",
-        current_start: "2026-06-01", current_end: "2026-08-31",
+        ...periods,
         scada_level_percent: scadaLevel,
       }));
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Satellite analysis failed"); }
@@ -34,6 +37,10 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
     <div className="satellite-layout">
       <section className="panel satellite-workspace">
         <SatelliteMap polygon={polygon} onChange={setPolygon} />
+        <div className="satellite-periods">
+          <fieldset><legend>Baseline imagery period</legend><label>From<input type="date" value={periods.baseline_start} onChange={(event) => setPeriods({ ...periods, baseline_start: event.target.value })} /></label><label>To<input type="date" value={periods.baseline_end} onChange={(event) => setPeriods({ ...periods, baseline_end: event.target.value })} /></label></fieldset>
+          <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
+        </div>
         <div className="satellite-controls">
           <div><span>SCADA reservoir level</span><strong>{scadaLevel}%</strong></div>
           <input type="range" min="20" max="100" value={scadaLevel} onChange={(event) => setScadaLevel(Number(event.target.value))} aria-label="SCADA reservoir level" />
@@ -52,6 +59,6 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
         </div>}
       </aside>
     </div>
-    {result && <section className="satellite-comparison"><article><span>Baseline period</span>{result.baseline_image_url ? <img src={result.baseline_image_url} alt="Baseline satellite observation" /> : <div className="satellite-placeholder baseline"><b>Historical composite</b><small>2025 summer baseline</small></div>}</article><article><span>Current period</span>{result.current_image_url ? <img src={result.current_image_url} alt="Current satellite observation" /> : <div className="satellite-placeholder current"><b>Recent composite</b><small>Detected water contraction</small></div>}</article></section>}
+    {result && <section className="satellite-comparison"><article><span>Baseline · {periods.baseline_start} to {periods.baseline_end}</span>{result.baseline_image_url ? <img src={result.baseline_image_url} alt="Baseline satellite observation" /> : <div className="satellite-placeholder baseline"><b>Historical composite</b><small>{periods.baseline_start} — {periods.baseline_end}</small></div>}</article><article><span>Current · {periods.current_start} to {periods.current_end}</span>{result.current_image_url ? <img src={result.current_image_url} alt="Current satellite observation" /> : <div className="satellite-placeholder current"><b>Recent composite</b><small>{periods.current_start} — {periods.current_end}</small></div>}</article></section>}
   </div>;
 }
