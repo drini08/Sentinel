@@ -72,9 +72,7 @@ def cors_origins() -> list[str]:
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
     vercel_runtime = database_path is None and bool(os.getenv("VERCEL"))
-    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH") or (
-        ":memory:" if vercel_runtime else default_database_path(vercel_runtime)
-    )
+    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH") or ":memory:"
     store = EvidenceStore(resolved_path)
     defense = DefenseService(store)
     security = SecurityService(store, defense=defense)
