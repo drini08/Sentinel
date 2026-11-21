@@ -45,7 +45,10 @@ def default_database_path(vercel: bool) -> Path:
 
 
 def production_database_url(vercel: bool, database_url: str | None) -> str | None:
-    if vercel and not database_url:
+    # Vercel's filesystem is ephemeral. Production normally requires the shared
+    # Postgres jury store, but the hackathon deployment can opt into a clearly
+    # labelled temporary store until a managed database is connected.
+    if vercel and not database_url and os.getenv("SENTINEL_ALLOW_EPHEMERAL_DB", "").lower() != "true":
         raise RuntimeError("DATABASE_URL is required for shared jury state on Vercel")
     return database_url
 
