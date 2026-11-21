@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import base64
+from urllib.parse import urlencode
 from hashlib import sha256
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -29,10 +30,10 @@ class SatelliteService:
             mode="live" if self.project else "demo",
         )
 
-    def analyze(self, request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
+    def analyze(self, request: SatelliteAnalysisRequest, vercel_oidc_token: str | None = None) -> SatelliteAnalysisResult:
         if self.project:
             try:
-                metrics = self._earth_engine_metrics(request)
+                metrics = self._earth_engine_metrics(request, vercel_oidc_token)
             except Exception as error:
                 raise SatelliteLiveError("Earth Engine analysis is unavailable; check project registration and credentials") from error
             source = "earth-engine"
@@ -85,7 +86,7 @@ class SatelliteService:
             "current_image_url": None,
         }
 
-    def _earth_engine_metrics(self, request: SatelliteAnalysisRequest) -> dict[str, float | str | None]:
+    def _earth_engine_metrics(self, request: SatelliteAnalysisRequest, vercel_oidc_token: str | None = None) -> dict[str, float | str | None]:
         import ee  # type: ignore[import-untyped]
 
         credentials_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64")
@@ -98,6 +99,9 @@ class SatelliteService:
                 service_account_info,
                 scopes=["https://www.googleapis.com/auth/earthengine", "https://www.googleapis.com/auth/cloud-platform"],
             )
+            ee.Initialize(credentials=credentials, project=self.project)
+        elif vercel_oidc_token or os.getenv("VERCEL_OIDC_TOKEN"):
+            credentials = self._vercel_federated_credentials(vercel_oidc_token or os.environ["VERCEL_OIDC_TOKEN"])
             ee.Initialize(credentials=credentials, project=self.project)
         else:
             # Local development keeps supporting GOOGLE_APPLICATION_CREDENTIALS,
@@ -136,6 +140,42 @@ class SatelliteService:
             "baseline_image_url": baseline_image.getThumbURL(visualization),
             "current_image_url": current_image.getThumbURL(visualization),
         }
+
+    def _vercel_federated_credentials(self, subject_token: str):
+        from google.oauth2.credentials import Credentials
+
+        project_number = os.getenv("GCP_PROJECT_NUMBER")
+        pool_id = os.getenv("GCP_WORKLOAD_IDENTITY_POOL_ID")
+        provider_id = os.getenv("GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID")
+        service_account = os.getenv("GCP_SERVICE_ACCOUNT_EMAIL")
+        if not all((project_number, pool_id, provider_id, service_account)):
+            raise SatelliteLiveError("Vercel OIDC federation is not fully configured")
+        audience = (
+            f"//iam.googleapis.com/projects/{project_number}/locations/global/"
+            f"workloadIdentityPools/{pool_id}/providers/{provider_id}"
+        )
+        token_body = urlencode({
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "audience": audience,
+            "scope": "https://www.googleapis.com/auth/cloud-platform",
+            "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "subject_token": subject_token,
+        }).encode()
+        with urlopen(Request(
+            "https://sts.googleapis.com/v1/token", data=token_body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST",
+        ), timeout=15) as response:
+            federated = json.loads(response.read())
+        access_body = json.dumps({"scope": ["https://www.googleapis.com/auth/cloud-platform"], "lifetime": "3600s"}).encode()
+        with urlopen(Request(
+            f"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{service_account}:generateAccessToken",
+            data=access_body,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {federated['access_token']}"},
+            method="POST",
+        ), timeout=15) as response:
+            access = json.loads(response.read())
+        return Credentials(token=access["accessToken"])
 
     def _explain(
         self,

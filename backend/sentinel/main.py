@@ -109,9 +109,9 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         return satellite.status()
 
     @application.post("/api/v1/satellite/analyze", response_model=SatelliteAnalysisResult, tags=["satellite"])
-    def analyze_satellite_area(request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
+    def analyze_satellite_area(request: SatelliteAnalysisRequest, x_vercel_oidc_token: str | None = Header(default=None)) -> SatelliteAnalysisResult:
         try:
-            result = satellite.analyze(request)
+            result = satellite.analyze(request, x_vercel_oidc_token)
         except SatelliteLiveError as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
         defense.audit(
