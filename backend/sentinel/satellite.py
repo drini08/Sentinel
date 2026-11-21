@@ -160,7 +160,7 @@ class SatelliteService:
         token_body = urlencode({
             "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
             "audience": audience,
-            "scope": "https://www.googleapis.com/auth/cloud-platform",
+            "scope": "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/earthengine",
             "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
             "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
             "subject_token": subject_token,
@@ -173,7 +173,13 @@ class SatelliteService:
                 federated = json.loads(response.read())
         except HTTPError as error:
             raise SatelliteLiveError(f"Google STS exchange failed (HTTP {error.code})") from error
-        access_body = json.dumps({"scope": ["https://www.googleapis.com/auth/cloud-platform"], "lifetime": "3600s"}).encode()
+        access_body = json.dumps({
+            "scope": [
+                "https://www.googleapis.com/auth/cloud-platform",
+                "https://www.googleapis.com/auth/earthengine",
+            ],
+            "lifetime": "3600s",
+        }).encode()
         try:
             with urlopen(Request(
                 f"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{service_account}:generateAccessToken",
