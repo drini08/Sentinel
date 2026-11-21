@@ -63,8 +63,8 @@ describe("Facility page", () => {
     const api = createApi();
     render(<Facility api={api} />);
 
-    expect(screen.queryByLabelText("3D facility")).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Select Reservoir A" }));
+    expect(await screen.findByLabelText("3D facility")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Select Reservoir A" }));
     fireEvent.click(screen.getByRole("button", { name: "Isolate reservoir" }));
 
     await waitFor(() => expect(api.executeCommand).toHaveBeenCalledWith(
@@ -78,7 +78,6 @@ describe("Facility page", () => {
     render(<Facility api={createApi()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Select Reservoir A" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open 3D view" }));
     fireEvent.click(await screen.findByRole("button", { name: "Simulate context loss" }));
 
     expect(screen.getByText(/3D view unavailable/)).toBeInTheDocument();
@@ -129,7 +128,6 @@ describe("Facility page", () => {
     expect(await screen.findByText("Jury attack contained")).toBeInTheDocument();
     expect(screen.getAllByText(/command injection/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Risk 100")).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Open 3D view" }));
     expect(await screen.findByTestId("alerted-3d-asset")).toHaveTextContent("dosing-unit");
   });
 });

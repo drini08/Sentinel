@@ -31,7 +31,7 @@ class SceneBoundary extends Component<{ children: ReactNode; onUnavailable(): vo
 }
 
 export function FacilityView(props: FacilityViewProps) {
-  const [showThreeDimensions, setShowThreeDimensions] = useState(false);
+  const [showThreeDimensions, setShowThreeDimensions] = useState(true);
   const [sceneUnavailable, setSceneUnavailable] = useState(false);
   const showFallback = useCallback(() => {
     setSceneUnavailable(true);
@@ -56,7 +56,7 @@ export function FacilityView(props: FacilityViewProps) {
             setShowThreeDimensions(!showThreeDimensions);
           }}
         >
-          {showThreeDimensions ? <><List size={15} />Show asset list</> : <><Box size={15} />Open 3D view</>}
+          {showThreeDimensions ? <><List size={15} />Show SCADA Telemetry</> : <><Box size={15} />Show 3D View</>}
         </button>
         {sceneUnavailable && <span role="status">3D view unavailable. You can still inspect assets.</span>}
       </div>
