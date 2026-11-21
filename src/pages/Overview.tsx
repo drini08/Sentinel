@@ -29,15 +29,19 @@ const capabilities = [
 
 export function Overview() {
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-      if (atBottom) {
-        window.clearInterval(timer);
-        return;
-      }
-      window.scrollBy({ top: 1, behavior: "auto" });
-    }, 55);
-    return () => window.clearInterval(timer);
+    let frame = 0;
+    let previousTime = performance.now();
+    const pixelsPerSecond = 18;
+    const animate = (time: number) => {
+      const elapsed = Math.min(time - previousTime, 64);
+      previousTime = time;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (window.scrollY >= maxScroll - 1) return;
+      window.scrollTo(0, Math.min(maxScroll, window.scrollY + (pixelsPerSecond * elapsed) / 1000));
+      frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const dashboard = usePolling<Dashboard | null>("/api/v1/dashboard", null);
