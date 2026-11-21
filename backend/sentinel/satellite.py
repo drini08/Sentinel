@@ -37,8 +37,8 @@ class SatelliteService:
             except SatelliteLiveError:
                 raise
             except Exception as error:
-                print(f"Earth Engine federation error: {type(error).__name__}: {error}", flush=True)
-                raise SatelliteLiveError("Earth Engine analysis is unavailable; check project registration and credentials") from error
+                print(f"Earth Engine query error: {type(error).__name__}: {error}", flush=True)
+                raise SatelliteLiveError(f"Earth Engine query failed ({type(error).__name__})") from error
             source = "earth-engine"
         else:
             metrics = self._demo_metrics(request)
