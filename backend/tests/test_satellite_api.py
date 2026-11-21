@@ -1,60 +1,62 @@
+from datetime import date, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
 
 from sentinel.main import create_app
-from sentinel.satellite import SatelliteService
+from sentinel.satellite import SatelliteLiveError, SatelliteService
+from sentinel.satellite_models import SatelliteAnalysisRequest
 
 
-POLYGON = [
-    [21.3007, 42.8145],
-    [21.3204, 42.8072],
-    [21.3418, 42.8168],
-]
+SATELLITE_ENVIRONMENT = (
+    "EARTH_ENGINE_PROJECT",
+    "EARTH_ENGINE_DATASET",
+    "EARTH_ENGINE_CLOUD_PERCENT",
+    "EARTH_ENGINE_WATER_INDEX_THRESHOLD",
+    "EARTH_ENGINE_SCALE_METERS",
+    "EARTH_ENGINE_MAX_PIXELS",
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+)
 
 
-def test_satellite_status_uses_demo_mode_without_credentials(monkeypatch) -> None:
-    monkeypatch.delenv("EARTH_ENGINE_PROJECT", raising=False)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+def analysis_payload() -> dict[str, object]:
+    today = date.today()
+    return {
+        "polygon": [[0.0, 0.0], [0.01, 0.0], [0.01, 0.01]],
+        "baseline_start": (today - timedelta(days=60)).isoformat(),
+        "baseline_end": (today - timedelta(days=30)).isoformat(),
+        "current_start": (today - timedelta(days=29)).isoformat(),
+        "current_end": today.isoformat(),
+        "scada_level_percent": 50,
+    }
+
+
+def test_satellite_status_is_unavailable_without_runtime_configuration(monkeypatch) -> None:
+    for variable in SATELLITE_ENVIRONMENT:
+        monkeypatch.delenv(variable, raising=False)
     client = TestClient(create_app(":memory:"))
-
     response = client.get("/api/v1/satellite/status")
-
     assert response.status_code == 200
     assert response.json() == {
         "earth_engine_configured": False,
         "gemini_configured": False,
-        "mode": "demo",
-        "dataset": "COPERNICUS/S2_SR_HARMONIZED",
+        "mode": "unavailable",
+        "dataset": None,
     }
 
 
-def test_satellite_analysis_compares_polygon_evidence_with_scada(monkeypatch) -> None:
-    monkeypatch.delenv("EARTH_ENGINE_PROJECT", raising=False)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+def test_satellite_analysis_never_falls_back_without_live_configuration(monkeypatch) -> None:
+    for variable in SATELLITE_ENVIRONMENT:
+        monkeypatch.delenv(variable, raising=False)
     client = TestClient(create_app(":memory:"))
-
-    response = client.post("/api/v1/satellite/analyze", json={
-        "name": "Batlava Reservoir",
-        "polygon": POLYGON,
-        "baseline_start": "2025-06-01",
-        "baseline_end": "2025-08-31",
-        "current_start": "2026-06-01",
-        "current_end": "2026-08-31",
-        "scada_level_percent": 82,
-    })
-
-    assert response.status_code == 200
-    result = response.json()
-    assert result["source"] == "demo"
-    assert result["explanation_source"] == "deterministic"
-    assert result["mismatch_detected"] is True
-    assert result["change_percent"] < -8
-    assert result["imagery_dataset"] == "COPERNICUS/S2_SR_HARMONIZED"
-    assert "SCADA reports 82%" in result["observation"]
+    response = client.post("/api/v1/satellite/analyze", json=analysis_payload())
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Live satellite analysis is not fully configured"
 
 
 def test_gemini_structured_explanation_is_flattened_for_operators() -> None:
     assert SatelliteService._operator_text({
-        "baseline_water_area_km2": 1.35,
         "summary": "Water extent declined.",
         "details": ["SCADA remains high.", "Check telemetry."],
     }) == "Water extent declined."
@@ -65,14 +67,26 @@ def test_gemini_structured_explanation_is_flattened_for_operators() -> None:
 
 
 def test_configured_live_analysis_does_not_silently_fallback(monkeypatch) -> None:
-    monkeypatch.setenv("EARTH_ENGINE_PROJECT", "test-project")
-    monkeypatch.delenv("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64", raising=False)
+    runtime = {
+        "EARTH_ENGINE_PROJECT": "runtime-project",
+        "EARTH_ENGINE_DATASET": "runtime-dataset",
+        "EARTH_ENGINE_CLOUD_PERCENT": "1",
+        "EARTH_ENGINE_WATER_INDEX_THRESHOLD": "0",
+        "EARTH_ENGINE_SCALE_METERS": "1",
+        "EARTH_ENGINE_MAX_PIXELS": "1",
+        "GEMINI_API_KEY": "runtime-key",
+        "GEMINI_MODEL": "runtime-model",
+    }
+    for variable, value in runtime.items():
+        monkeypatch.setenv(variable, value)
     service = SatelliteService()
-    monkeypatch.setattr(service, "_earth_engine_metrics", lambda request: (_ for _ in ()).throw(RuntimeError("disabled")))
-
-    import pytest
-    with pytest.raises(RuntimeError, match="Earth Engine analysis is unavailable"):
-        service.analyze(type("Request", (), {"model_dump": lambda self, mode: {}, "polygon": POLYGON, "scada_level_percent": 82})())
+    monkeypatch.setattr(
+        service,
+        "_earth_engine_metrics",
+        lambda request, token=None: (_ for _ in ()).throw(RuntimeError("disabled")),
+    )
+    with pytest.raises(SatelliteLiveError, match="Earth Engine query failed"):
+        service.analyze(SatelliteAnalysisRequest.model_validate(analysis_payload()))
 
 
 def test_federation_configuration_requires_all_runtime_values(monkeypatch) -> None:
@@ -81,6 +95,5 @@ def test_federation_configuration_requires_all_runtime_values(monkeypatch) -> No
     monkeypatch.delenv("GCP_WORKLOAD_IDENTITY_POOL_ID", raising=False)
     monkeypatch.delenv("GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID", raising=False)
     monkeypatch.delenv("GCP_SERVICE_ACCOUNT_EMAIL", raising=False)
-    import pytest
     with pytest.raises(RuntimeError, match="Vercel OIDC federation is not fully configured"):
         service._vercel_federated_credentials("test-token")

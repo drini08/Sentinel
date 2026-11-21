@@ -33,7 +33,7 @@ paths:
             schema: { $ref: "#/components/schemas/SatelliteAnalysisRequest" }
       responses:
         "200":
-          description: Earth Engine or deterministic demo analysis with an optional Gemini explanation.
+          description: Live Earth Engine measurement with a Gemini operator explanation.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SatelliteAnalysisResult" }
@@ -383,13 +383,12 @@ components:
       properties:
         earth_engine_configured: { type: boolean }
         gemini_configured: { type: boolean }
-        mode: { type: string, enum: [live, demo] }
-        dataset: { type: string }
+        mode: { type: string, enum: [live, unavailable] }
+        dataset: { type: [string, "null"] }
     SatelliteAnalysisRequest:
       type: object
-      required: [name, polygon, baseline_start, baseline_end, current_start, current_end, scada_level_percent]
+      required: [polygon, baseline_start, baseline_end, current_start, current_end, scada_level_percent]
       properties:
-        name: { type: string }
         polygon:
           type: array
           minItems: 3
@@ -405,22 +404,15 @@ components:
         scada_level_percent: { type: number, minimum: 0, maximum: 100 }
     SatelliteAnalysisResult:
       type: object
-      required: [analysis_id, name, source, baseline_water_km2, current_water_km2, change_percent, scada_level_percent, mismatch_detected, confidence, observation, recommendation, explanation_source]
+      required: [analysis_id, baseline_water_km2, current_water_km2, change_percent, scada_level_percent, observation, recommendation, imagery_dataset]
       properties:
         analysis_id: { type: string }
-        name: { type: string }
-        source: { type: string, enum: [earth-engine, demo] }
         baseline_water_km2: { type: number }
         current_water_km2: { type: number }
         change_percent: { type: number }
         scada_level_percent: { type: number }
-        mismatch_detected: { type: boolean }
-        confidence: { type: number }
         observation: { type: string }
         recommendation: { type: string }
-        explanation_source: { type: string, enum: [gemini, deterministic] }
-        baseline_image_url: { type: [string, "null"] }
-        current_image_url: { type: [string, "null"] }
         imagery_dataset: { type: string }
     IncidentUpdate:
       type: object

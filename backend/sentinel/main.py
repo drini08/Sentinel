@@ -128,8 +128,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail=str(error)) from error
         defense.audit(
             "satellite", "area_analyzed", "sentinel-satellite-verification", "satellite_analysis",
-            result.analysis_id, "mismatch" if result.mismatch_detected else "consistent",
-            result.observation, source=result.source, change_percent=result.change_percent,
+            result.analysis_id, "measured", result.observation,
+            change_percent=result.change_percent,
         )
         return result
 
