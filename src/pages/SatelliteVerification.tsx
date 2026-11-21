@@ -15,7 +15,8 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
   const [scadaLevel, setScadaLevel] = useState<number | "">("");
   const [analyzedVertices, setAnalyzedVertices] = useState(0);
   const [periods, setPeriods] = useState({
-    baseline_start: "", baseline_end: "", current_start: "", current_end: "",
+    baseline_start: "2025-08-01", baseline_end: "2025-11-22",
+    current_start: "2026-08-01", current_end: "2026-11-22",
   });
   useEffect(() => { void api.getStatus().then(setStatus).catch(() => setStatus(null)); }, [api]);
 
