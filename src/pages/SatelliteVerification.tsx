@@ -20,13 +20,27 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
   });
   useEffect(() => { void api.getStatus().then(setStatus).catch(() => setStatus(null)); }, [api]);
 
+  const changePolygon = (next: Coordinate[]) => {
+    setPolygon(next);
+    setResult(null);
+    setAnalyzedVertices(0);
+  };
+
+  const changeDraft = (next: Coordinate[] | null) => {
+    setDraftPolygon(next);
+    if (next !== null) {
+      setResult(null);
+      setAnalyzedVertices(0);
+    }
+  };
+
   const analyze = async () => {
     const selectedPolygon = draftPolygon ?? polygon;
     if (selectedPolygon.length < 3) { setError("Draw at least three polygon points."); return; }
     setPending(true); setError(null);
     try {
       const analysis = await api.analyze({
-        name: "Batlava source reservoir",
+        name: "Selected area",
         polygon: selectedPolygon,
         ...periods,
         scada_level_percent: scadaLevel,
@@ -41,7 +55,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
     <PageHeader eyebrow="Physical ground truth" title="Satellite Intelligence" description="Draw an operational boundary, measure visible water change with Earth Engine, and compare independent evidence with SCADA telemetry." action={<Status tone={status?.mode === "live" ? "light" : "neutral"}>{status?.mode === "live" ? "Earth Engine live" : "Demo imagery mode"}</Status>} />
     <div className="satellite-layout">
       <section className="panel satellite-workspace">
-        <SatelliteMap polygon={polygon} onChange={setPolygon} onDraftChange={setDraftPolygon} />
+        <SatelliteMap polygon={polygon} onChange={changePolygon} onDraftChange={changeDraft} />
         <div className="satellite-periods">
           <fieldset><legend>Baseline imagery period</legend><label>From<input type="date" value={periods.baseline_start} onChange={(event) => setPeriods({ ...periods, baseline_start: event.target.value })} /></label><label>To<input type="date" value={periods.baseline_end} onChange={(event) => setPeriods({ ...periods, baseline_end: event.target.value })} /></label></fieldset>
           <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
