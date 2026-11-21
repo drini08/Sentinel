@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Activity, ArrowLeft, Check, RadioTower, ShieldCheck, TerminalSquare, UserRoundCog, Waves } from "lucide-react";
+import { Mark } from "../components/Brand";
 import { Link } from "react-router-dom";
 import { juryApi } from "../jury/api";
 import type { JuryApi, JuryRun, JuryScenario } from "../jury/types";
@@ -79,7 +80,7 @@ export function AttackConsole({ api = juryApi }: { api?: JuryApi }) {
       <div className="attack-console-noise" aria-hidden="true" />
       <header className="attack-topbar">
         <Link to="/" className="attack-brand" aria-label="Return to operator console">
-          <span><ShieldCheck size={18} /></span>
+          <span><Mark className="h-[18px] w-[18px]" /></span>
           <strong>Sentinel</strong>
         </Link>
         <div className="attack-live"><i /> Live facility link</div>

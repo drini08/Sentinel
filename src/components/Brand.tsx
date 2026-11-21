@@ -1,8 +1,18 @@
 export function Mark({ className = "h-7 w-7" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 28 32" fill="none" aria-hidden="true">
-      <path d="M14 1.8 25 6v8.1c0 7.1-4.6 12.8-11 16.1C7.6 26.9 3 21.2 3 14.1V6l11-4.2Z" stroke="currentColor" strokeWidth="2.6" />
-      <path d="M14 5.6 21.5 8.5v5.4c0 5.2-3.1 9.4-7.5 12-4.4-2.6-7.5-6.8-7.5-12V8.5L14 5.6Z" fill="currentColor" fillOpacity=".08" />
+    <svg className={className} viewBox="0 0 32 36" fill="none" aria-hidden="true">
+      <path
+        d="M16 2.5 28 7v9.2c0 8-5.1 14.1-12 17.3C9.1 30.3 4 24.2 4 16.2V7l12-4.5Z"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M22.9 10.7c-1.8-1.4-4.1-2.2-6.7-2.2-3.7 0-6.5 1.7-6.5 4.2 0 2.3 2.2 3.3 6.5 4.4 4.4 1.1 6.4 2.2 6.4 4.6 0 2.7-2.8 4.7-6.8 4.7-2.8 0-5.3-.9-7.2-2.5"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
