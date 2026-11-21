@@ -38,7 +38,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
   };
 
   return <div className="animate-enter satellite-page">
-    <PageHeader eyebrow="Physical ground truth" title="Satellite Verification" description="Draw an operational boundary, measure visible water change with Earth Engine, and compare independent evidence with SCADA telemetry." action={<Status tone={status?.mode === "live" ? "light" : "neutral"}>{status?.mode === "live" ? "Earth Engine live" : "Demo imagery mode"}</Status>} />
+    <PageHeader eyebrow="Physical ground truth" title="Satellite Intelligence" description="Draw an operational boundary, measure visible water change with Earth Engine, and compare independent evidence with SCADA telemetry." action={<Status tone={status?.mode === "live" ? "light" : "neutral"}>{status?.mode === "live" ? "Earth Engine live" : "Demo imagery mode"}</Status>} />
     <div className="satellite-layout">
       <section className="panel satellite-workspace">
         <SatelliteMap polygon={polygon} onChange={setPolygon} onDraftChange={setDraftPolygon} />
