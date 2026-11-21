@@ -80,7 +80,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     application = FastAPI(
         title="SENTINEL Security Core",
         version="0.1.0",
-        description="Explainable detection and selective containment for the Dardania Water Services simulation.",
+        description="Explainable detection and selective protection for the Dardania Water Services simulation.",
     )
     application.add_middleware(
         CORSMiddleware,

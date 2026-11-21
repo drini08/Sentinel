@@ -1,5 +1,6 @@
 import { Activity, FileSearch } from "lucide-react";
 import { PageHeader, Status } from "../components/UI";
+import { protectionLanguage } from "../components/protectionLanguage";
 import { type Detection, type Policy, usePolling } from "../api";
 
 export function Threats() {
@@ -14,7 +15,7 @@ export function Threats() {
           <div className="table-scroll">
             <table className="data-table min-w-[760px]">
               <thead><tr><th>Observed</th><th>Risk</th><th>Classification</th><th>Evidence</th><th>Recommendation</th></tr></thead>
-              <tbody>{detections.map((item) => <tr key={item.assessment_id}><td className="font-mono text-[11px]">{new Date(item.created_at).toLocaleTimeString()}</td><td className="font-mono text-primary">{item.risk_score}</td><td><Status tone={item.level === "critical" ? "light" : "neutral"}>{item.level}</Status></td><td>{item.signals.length} correlated signals</td><td className="max-w-sm text-xs">{item.recommendation}</td></tr>)}</tbody>
+              <tbody>{detections.map((item) => <tr key={item.assessment_id}><td className="font-mono text-[11px]">{new Date(item.created_at).toLocaleTimeString()}</td><td className="font-mono text-primary">{item.risk_score}</td><td><Status tone={item.level === "critical" ? "light" : "neutral"}>{item.level}</Status></td><td>{item.signals.length} correlated signals</td><td className="max-w-sm text-xs">{protectionLanguage(item.recommendation)}</td></tr>)}</tbody>
             </table>
           </div>
           {detections.length === 0 && <div className="p-12 text-center"><FileSearch className="mx-auto text-muted" /><p className="mt-3 text-sm text-secondary">No detections recorded yet.</p><p className="mt-1 text-xs text-muted">Run the compromised-session scenario to generate explainable evidence.</p></div>}

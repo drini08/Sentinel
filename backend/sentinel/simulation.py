@@ -72,7 +72,7 @@ def run_compromised_session_scenario(service: SecurityService) -> SimulationResu
     )
 
     if attack.incident is None or attack.containment is None:
-        raise RuntimeError("The deterministic scenario did not produce containment")
+        raise RuntimeError("The deterministic scenario did not produce protection")
 
     return SimulationResult(
         scenario="compromised-employee-session",
@@ -87,7 +87,7 @@ def run_compromised_session_scenario(service: SecurityService) -> SimulationResu
             SimulationStep(sequence=1, event="Behavioral baseline", outcome="Established from four legitimate requests"),
             SimulationStep(sequence=2, event="Compromised session", outcome="Administrative mutation received from a new context"),
             SimulationStep(sequence=3, event="Risk assessment", outcome=f"Critical score {attack.assessment.risk_score if attack.assessment else 0}"),
-            SimulationStep(sequence=4, event="Selective containment", outcome="Only the suspicious session was restricted"),
+            SimulationStep(sequence=4, event="Selective protection", outcome="Only the suspicious session was restricted"),
             SimulationStep(sequence=5, event="Continuity verification", outcome="Independent legitimate request returned 200"),
         ],
     )

@@ -15,7 +15,7 @@ it("presents the command-center entry point with direct operational actions", ()
   expect(screen.getByRole("heading", { name: "What it does" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Observe" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Understand" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Contain" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Protect" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Continue" })).toBeInTheDocument();
   expect(screen.queryByText("Requests analyzed")).not.toBeInTheDocument();
   expect(screen.queryByText("PROTECTION ACTIVE")).not.toBeInTheDocument();

@@ -73,7 +73,7 @@ class DefenseService:
                 Policy(
                     policy_id="adaptive-defense-default",
                     name="Adaptive defense",
-                    description="Corroborated, scoped containment with continuity verification.",
+                    description="Corroborated, scoped protection with continuity verification.",
                 )
             )
 

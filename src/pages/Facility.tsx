@@ -7,6 +7,7 @@ import { useFacility } from "../facility/useFacility";
 import type { FacilityApi } from "../facility/types";
 import { PageHeader } from "../components/UI";
 import { JuryAccess } from "../jury/JuryAccess";
+import { protectionLanguage } from "../components/protectionLanguage";
 import { juryApi } from "../jury/api";
 import type { JuryApi, JuryRun } from "../jury/types";
 
@@ -100,7 +101,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
             {facility.lastCommand.applied ? <Sparkles size={15} /> : <ShieldAlert size={15} />}
             <div>
               <strong>{facility.lastCommand.applied ? "Command applied" : "Command blocked by SENTINEL"}</strong>
-              <span>{facility.lastCommand.decision.reason}</span>
+              <span>{protectionLanguage(facility.lastCommand.decision.reason)}</span>
             </div>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Activity, Gauge, Power, RotateCcw, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import type { AssetCommand, FacilityAsset } from "./types";
+import { protectionLanguage } from "../components/protectionLanguage";
 
 type AssetDrawerProps = {
   asset: FacilityAsset | null;
@@ -47,7 +48,7 @@ export function AssetDrawer({ asset, disabled, onClose, onCommand }: AssetDrawer
 
       <div className="facility-asset-state">
         <span className={`facility-state-light ${asset.status === "operational" ? "is-operational" : ""}`} />
-        <div><strong>{asset.status.toUpperCase()}</strong><span><ShieldCheck size={12} /> {asset.security_status.toUpperCase()}</span></div>
+        <div><strong>{asset.status.toUpperCase()}</strong><span><ShieldCheck size={12} /> {protectionLanguage(asset.security_status).toUpperCase()}</span></div>
       </div>
 
       <div className="facility-metrics">

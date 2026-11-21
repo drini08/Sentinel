@@ -15,7 +15,7 @@ const capabilities = [
   },
   {
     number: "03",
-    title: "Contain",
+    title: "Protect",
     description: "Blocks malicious commands and isolates only the compromised session.",
   },
   {

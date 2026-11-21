@@ -102,7 +102,7 @@ class FacilityService:
                     event="Explainable risk assessment",
                     outcome=f"Critical score {attack.decision.assessment.risk_score if attack.decision.assessment else 0}",
                 ),
-                SimulationStep(sequence=4, event="Selective containment", outcome="Compromised session restricted; pump command not applied"),
+                SimulationStep(sequence=4, event="Selective protection", outcome="Compromised session restricted; pump command not applied"),
                 SimulationStep(sequence=5, event="Continuity verification", outcome="Legitimate manifold command succeeded"),
             ],
         )

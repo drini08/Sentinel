@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Camera, CheckCircle2, ImagePlus, ScanSearch, Sparkles, Upload } from "lucide-react";
 import { PageHeader, Status } from "../components/UI";
+import { protectionLanguage } from "../components/protectionLanguage";
 import { visualInspectionApi } from "../inspection/api";
 import type { VisualInspectionResult, VisualInspectionStatus } from "../inspection/types";
 
@@ -79,7 +80,7 @@ export function VisualInspection() {
         {!result && <div className="panel visual-empty"><Sparkles size={24} /><strong>Ready for visual inspection</strong><p>Gemini will report only visible evidence and concise verification steps.</p></div>}
         {result && <div className={`panel visual-result condition-${result.condition}`}>
           <header><i>{conditionIcon}</i><div><span>{result.condition} condition</span><h2>{result.asset_type}</h2></div><b>{Math.round(result.confidence * 100)}% confidence</b></header>
-          <p>{result.summary}</p>
+          <p>{protectionLanguage(result.summary)}</p>
           <div className="visual-result-sections">
             <ResultList title="Visible findings" items={result.findings} />
             <ResultList title="Potential risks" items={result.risks} empty="No visible risks identified" />
@@ -93,6 +94,6 @@ export function VisualInspection() {
 }
 
 function ResultList({ title, items, empty }: { title: string; items: string[]; empty?: string }) {
-  return <section className="visual-result-list"><h3>{title}</h3>{items.length ? <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{empty}</p>}</section>;
+  return <section className="visual-result-list"><h3>{title}</h3>{items.length ? <ul>{items.map((item) => <li key={item}>{protectionLanguage(item)}</li>)}</ul> : <p>{empty}</p>}</section>;
 }
 

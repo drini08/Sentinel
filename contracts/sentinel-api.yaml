@@ -105,7 +105,7 @@ paths:
       parameters:
         - { in: path, name: incident_id, required: true, schema: { type: string } }
       responses:
-        "200": { description: Persisted request, containment, and continuity evidence correlated to the incident. }
+        "200": { description: Persisted request, protection, and continuity evidence correlated to the incident. }
   /api/v1/activity:
     get:
       operationId: listActivity
@@ -254,7 +254,7 @@ paths:
         - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
       responses:
         "200":
-          description: Completed attack, containment, and continuity-verification result.
+          description: Completed attack, protection, and continuity-verification result.
           content:
             application/json:
               schema:
@@ -291,7 +291,7 @@ paths:
             schema: { $ref: "#/components/schemas/JuryAttackRequest" }
       responses:
         "200":
-          description: Containment result visible to both jury and operator screens.
+          description: Protection result visible to both jury and operator screens.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/JuryRun" }

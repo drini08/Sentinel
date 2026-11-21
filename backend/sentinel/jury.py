@@ -119,7 +119,7 @@ class JuryService:
             steps=[
                 SimulationStep(sequence=1, event="Attack received", outcome=label),
                 SimulationStep(sequence=2, event="Cross-layer correlation", outcome=f"Risk score {risk_score} from network, device, and behavior signals"),
-                SimulationStep(sequence=3, event="Selective containment", outcome=f"{asset_id} protected without applying the hostile change"),
+                SimulationStep(sequence=3, event="Selective protection", outcome=f"{asset_id} protected without applying the hostile change"),
                 SimulationStep(sequence=4, event="Continuity verification", outcome="Independent operator telemetry remained available"),
             ],
         )

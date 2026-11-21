@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Ban, Plus, RefreshCw, ShieldOff, Undo2 } from "lucide-react";
 import { sentinelApi, type FirewallRule, type Session, usePolling } from "../api";
 import { PageHeader, Status } from "../components/UI";
+import { protectionLanguage } from "../components/protectionLanguage";
 
 export function Defense() {
   const rules = usePolling<FirewallRule[]>("/api/v1/firewall/rules", []);
@@ -19,11 +20,11 @@ export function Defense() {
   return (
     <div className="animate-enter">
       <PageHeader eyebrow="Controlled defense" title="Defense Control" description="Manage scoped gateway restrictions and compromised sessions with complete, reversible audit history." action={<Status tone={rules.connected ? "light" : "muted"}>{rules.connected ? "Enforcing" : "Offline"}</Status>} />
-      {message && <div className="mb-5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-xs text-secondary" role={failed ? "alert" : "status"}>{message}</div>}
+      {message && <div className="mb-5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-xs text-secondary" role={failed ? "alert" : "status"}>{protectionLanguage(message)}</div>}
       <div className="grid gap-5 xl:grid-cols-[1.4fr_.7fr]">
         <section className="panel overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/[0.07] p-5"><div className="eyebrow">Adaptive firewall rules</div><span className="font-mono text-[10px] text-muted">{rules.data.filter((rule) => rule.status === "active").length} ACTIVE</span></div>
-          <div className="table-scroll"><table className="data-table min-w-[780px]"><thead><tr><th>Target</th><th>Action</th><th>Status</th><th>Expires</th><th>Reason</th><th /></tr></thead><tbody>{rules.data.map((rule) => <tr key={rule.rule_id}><td><div className="font-mono text-xs text-primary">{rule.target_value}</div><div className="mt-1 text-[10px] text-muted">{rule.target_type}</div></td><td>{rule.action}</td><td><Status tone={rule.status === "active" ? "light" : "muted"}>{rule.status}</Status></td><td className="font-mono text-[10px]">{new Date(rule.expires_at).toLocaleTimeString()}</td><td className="max-w-xs text-xs">{rule.justification}</td><td>{rule.status === "active" && <button disabled={busy} className="icon-button" aria-label="Remove rule" onClick={() => void act(() => sentinelApi.removeRule(rule.rule_id), "Rule removed.")}><Undo2 size={14} /></button>}</td></tr>)}</tbody></table></div>
+          <div className="table-scroll"><table className="data-table min-w-[780px]"><thead><tr><th>Target</th><th>Action</th><th>Status</th><th>Expires</th><th>Reason</th><th /></tr></thead><tbody>{rules.data.map((rule) => <tr key={rule.rule_id}><td><div className="font-mono text-xs text-primary">{rule.target_value}</div><div className="mt-1 text-[10px] text-muted">{rule.target_type}</div></td><td>{rule.action}</td><td><Status tone={rule.status === "active" ? "light" : "muted"}>{rule.status}</Status></td><td className="font-mono text-[10px]">{new Date(rule.expires_at).toLocaleTimeString()}</td><td className="max-w-xs text-xs">{protectionLanguage(rule.justification)}</td><td>{rule.status === "active" && <button disabled={busy} className="icon-button" aria-label="Remove rule" onClick={() => void act(() => sentinelApi.removeRule(rule.rule_id), "Rule removed.")}><Undo2 size={14} /></button>}</td></tr>)}</tbody></table></div>
           {rules.data.length === 0 && <div className="p-10 text-center text-sm text-muted">No firewall rules have been created.</div>}
         </section>
         <aside className="space-y-5">

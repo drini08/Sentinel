@@ -47,7 +47,7 @@ class SecurityService:
                 event_id=event.event_id,
                 allowed=False,
                 response_status=403,
-                reason=f"Session is {profile.status.value} by containment policy.",
+                reason=f"Session is {profile.status.value} by protection policy.",
             )
 
         firewall_rule = self.defense.matching_rule(event)
@@ -130,19 +130,19 @@ class SecurityService:
                 session_id=event.session_id,
                 status=IncidentStatus.ACTIVE,
                 risk=assessment,
-                summary="Critical risk was blocked, but automatic containment was not authorized by policy.",
+                summary="Critical risk was blocked, but automatic protection was not authorized by policy.",
             )
             self.store.save_incident(incident)
             self.defense.audit(
-                "decision", "containment_approval_required", "sentinel-decision-engine",
+                "decision", "protection_approval_required", "sentinel-decision-engine",
                 "incident", incident.incident_id, "pending_approval",
-                "High-impact containment requires enabled policy and corroborating evidence.",
+                "High-impact protection requires enabled policy and corroborating evidence.",
             )
             return GatewayDecision(
                 event_id=event.event_id,
                 allowed=False,
                 response_status=403,
-                reason="Critical request blocked; operator authorization is required for containment.",
+                reason="Critical request blocked; operator authorization is required for protection.",
                 assessment=assessment,
                 incident=incident,
             )
@@ -167,7 +167,7 @@ class SecurityService:
         self.store.save_action(action)
         self.defense.audit(
             "identity", "session_restricted", "sentinel-decision-engine", "session",
-            event.session_id, "enforced", "Critical corroborated evidence triggered selective containment.",
+            event.session_id, "enforced", "Critical corroborated evidence triggered selective protection.",
             incident_id=incident.incident_id,
         )
         self.defense.create_automatic_ip_rule(event.source_ip, incident.incident_id)
@@ -175,7 +175,7 @@ class SecurityService:
             event_id=event.event_id,
             allowed=False,
             response_status=403,
-            reason="Critical risk threshold exceeded; the session was selectively contained.",
+            reason="Critical risk threshold exceeded; the session was selectively protected.",
             assessment=assessment,
             incident=incident,
             containment=action,
