@@ -556,11 +556,11 @@ html, body { background: #e9eaeb; }
 @media(max-width:560px){.facility-jury-alert{right:12px;top:70px;width:calc(100% - 24px)}}
 
 /* Consolidated product navigation */
-.section-bar { display:flex;align-items:center;justify-content:space-between;gap:28px;min-height:112px;margin:-16px 0 34px;border-bottom:1px solid rgba(24,29,36,.11);padding:18px 24px; }
+.section-bar { display:flex;align-items:center;justify-content:space-between;gap:28px;min-height:92px;margin:-30px 0 24px;border-bottom:1px solid rgba(24,29,36,.11);padding:12px 24px; }
 .section-bar>span { color:#858b93;font-size:9px;font-weight:700;letter-spacing:.17em;text-transform:uppercase; }
 .section-bar nav { display:flex;align-items:center;min-width:0;gap:12px;overflow-x:auto;scrollbar-width:none; }
 .section-bar nav::-webkit-scrollbar { display:none; }
-.section-bar a { flex:0 0 auto;border-radius:12px;padding:17px 28px;color:#687079;font-size:19px;font-weight:700;text-decoration:none;transition:150ms ease; }
+.section-bar a { flex:0 0 auto;border:1px solid transparent;border-radius:4px;padding:14px 25px;color:#687079;font-family:"Segoe UI Mono","Roboto Mono",Consolas,monospace;font-size:17px;font-weight:700;letter-spacing:.01em;text-decoration:none;transition:150ms ease; }
 .section-bar a:hover { color:#1d2126;background:rgba(24,29,36,.045); }
 .section-bar a.is-active { color:#f5f5f3;background:#252a30; }
 @media(max-width:700px){.section-bar{align-items:flex-start;flex-direction:column;gap:10px;margin-top:-8px;padding:16px 12px;min-height:0}.section-bar nav{width:100%}.section-bar a{padding:12px 16px;font-size:15px}}
