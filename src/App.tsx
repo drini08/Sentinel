@@ -12,6 +12,7 @@ import { Threats } from "./pages/Threats";
 import { Defense } from "./pages/Defense";
 import { AttackConsole } from "./pages/AttackConsole";
 import { SatelliteVerification } from "./pages/SatelliteVerification";
+import { VisualInspection } from "./pages/VisualInspection";
 import { SectionLayout } from "./components/SectionLayout";
 
 const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
@@ -22,9 +23,10 @@ export function App() {
       <Route path="attack" element={<AttackConsole />} />
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
-        <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Infrastructure View", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Services & Health", "/facility/services"]]} />}>
+        <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Infrastructure View", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Visual Inspection", "/facility/inspection"], ["Services & Health", "/facility/services"]]} />}>
           <Route index element={<Suspense fallback={<div className="facility-route-loading">Loading infrastructure view…</div>}><Facility /></Suspense>} />
           <Route path="satellite" element={<SatelliteVerification />} />
+          <Route path="inspection" element={<VisualInspection />} />
           <Route path="services" element={<Services />} />
         </Route>
         <Route path="security" element={<SectionLayout label="Security" tabs={[["Threats", "/security/threats"], ["Incidents", "/security/incidents"], ["Defense", "/security/defense"], ["Policies", "/security/policies"], ["Audit Logs", "/security/logs"]]} />}>

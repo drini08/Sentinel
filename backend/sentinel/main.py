@@ -38,6 +38,8 @@ from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, Jury
 from .jury_store import build_jury_store
 from .satellite import SatelliteLiveError, SatelliteService
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
+from .visual_inspection import VisualInspectionService, VisualInspectionUnavailable
+from .visual_inspection_models import VisualInspectionRequest, VisualInspectionResult, VisualInspectionStatus
 
 
 def default_database_path(vercel: bool) -> Path:
@@ -103,6 +105,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     application.state.jury = jury
     satellite = SatelliteService()
     application.state.satellite = satellite
+    visual_inspection = VisualInspectionService()
+    application.state.visual_inspection = visual_inspection
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
@@ -126,6 +130,22 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             "satellite", "area_analyzed", "sentinel-satellite-verification", "satellite_analysis",
             result.analysis_id, "mismatch" if result.mismatch_detected else "consistent",
             result.observation, source=result.source, change_percent=result.change_percent,
+        )
+        return result
+
+    @application.get("/api/v1/visual-inspection/status", response_model=VisualInspectionStatus, tags=["infrastructure"])
+    def visual_inspection_status() -> VisualInspectionStatus:
+        return visual_inspection.status()
+
+    @application.post("/api/v1/visual-inspection/analyze", response_model=VisualInspectionResult, tags=["infrastructure"])
+    def analyze_infrastructure_image(request: VisualInspectionRequest) -> VisualInspectionResult:
+        try:
+            result = visual_inspection.analyze(request)
+        except VisualInspectionUnavailable as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        defense.audit(
+            "infrastructure", "image_inspected", "sentinel-visual-inspection", "inspection",
+            result.inspection_id, result.condition, result.summary, model=result.model,
         )
         return result
 
