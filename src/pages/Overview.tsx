@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { DefenseNetwork } from "../components/Visuals";
 import { Eyebrow } from "../components/UI";
-import { type Dashboard, usePolling } from "../api";
 
 const capabilities = [
   {
@@ -35,20 +34,15 @@ export function Overview() {
     const animate = (time: number) => {
       const elapsed = Math.min(time - previousTime, 64);
       previousTime = time;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const scroller = document.scrollingElement ?? document.documentElement;
-      if (scroller.scrollTop >= maxScroll - 1) return;
-      scroller.scrollTop = Math.min(maxScroll, scroller.scrollTop + (pixelsPerSecond * elapsed) / 1000);
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      if (window.scrollY >= maxScroll - 1) return;
+      window.scrollTo(0, Math.min(maxScroll, window.scrollY + (pixelsPerSecond * elapsed) / 1000));
       frame = window.requestAnimationFrame(animate);
     };
     frame = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  const dashboard = usePolling<Dashboard | null>("/api/v1/dashboard", null);
-  const incidentLabel = dashboard.data
-    ? `${dashboard.data.active_incidents} active incident${dashboard.data.active_incidents === 1 ? "" : "s"}`
-    : null;
   return (
     <div className="animate-enter overview-v2 overview-apple">
       <section className="overview-hero">
@@ -59,13 +53,6 @@ export function Overview() {
           <div className="overview-actions">
             <Link to="/facility" className="button-primary" aria-label="Open facility">Open facility</Link>
             <Link to="/lab" className="button-secondary" aria-label="Run attack demo">Run attack demo</Link>
-          </div>
-          <div className="overview-proof">
-            {dashboard.connected && dashboard.data ? <>
-              <span>{dashboard.data.protected_services} services protected</span>
-              <span>{incidentLabel}</span>
-              <span>{dashboard.data.continuity_ok ? "Continuity verified" : "Continuity at risk"}</span>
-            </> : <span>Live posture unavailable</span>}
           </div>
         </div>
         <DefenseNetwork />
