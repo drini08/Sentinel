@@ -8,11 +8,12 @@ export function Mark({ className = "h-7 w-7" }: { className?: string }) {
         strokeLinejoin="round"
       />
       <path
-        d="M51.5 23.5c-9-5.5-25.3-5-33.4 1.1-7.1 5.4-4.8 11.9 8.8 15.3 14.4 3.6 21.3 7.3 17.5 13.9-4.3 7.3-19.7 8.1-31.5-.5"
+        d="M32 17.5c-2.8 4.5-11 14.2-11 23a11 11 0 0 0 22 0c0-8.8-8.2-18.5-11-23Z"
         stroke="currentColor"
         strokeWidth="2.8"
-        strokeLinecap="round"
         strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity=".06"
       />
     </svg>
   );
