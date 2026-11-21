@@ -34,7 +34,12 @@ export function Overview() {
     const animate = (time: number) => {
       const elapsed = Math.min(time - previousTime, 64);
       previousTime = time;
-      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const scroller = document.scrollingElement ?? document.documentElement;
+      const maxScroll = Math.max(0, Math.max(scroller.scrollHeight, document.body.scrollHeight) - window.innerHeight);
+      if (maxScroll === 0) {
+        frame = window.requestAnimationFrame(animate);
+        return;
+      }
       if (window.scrollY >= maxScroll - 1) return;
       window.scrollTo(0, Math.min(maxScroll, window.scrollY + (pixelsPerSecond * elapsed) / 1000));
       frame = window.requestAnimationFrame(animate);
