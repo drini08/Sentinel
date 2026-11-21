@@ -31,13 +31,14 @@ export function Overview() {
   useEffect(() => {
     let frame = 0;
     let previousTime = performance.now();
-    const pixelsPerSecond = 18;
+    const pixelsPerSecond = 30;
     const animate = (time: number) => {
       const elapsed = Math.min(time - previousTime, 64);
       previousTime = time;
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (window.scrollY >= maxScroll - 1) return;
-      window.scrollTo(0, Math.min(maxScroll, window.scrollY + (pixelsPerSecond * elapsed) / 1000));
+      const scroller = document.scrollingElement ?? document.documentElement;
+      if (scroller.scrollTop >= maxScroll - 1) return;
+      scroller.scrollTop = Math.min(maxScroll, scroller.scrollTop + (pixelsPerSecond * elapsed) / 1000);
       frame = window.requestAnimationFrame(animate);
     };
     frame = window.requestAnimationFrame(animate);
