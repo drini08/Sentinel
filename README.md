@@ -28,7 +28,9 @@ npm.cmd run dev
 
 Open `http://127.0.0.1:5173/`.
 
-The console exposes live backend state across Overview, Facility, Threats, Incidents, Defense, Services, Policies, Logs, and Simulation Lab. The Facility contains three reservoirs, raw-water intake, chemical dosing, clarification, filtration, pumping, distribution controls, operations, and backup power.
+The compact top navigation is grouped into Overview, Facility, Security, and Demo. Section tabs expose the detailed views without crowding the global navigation. Facility includes the digital twin, services, and Satellite Verification; Security groups threats, incidents, defense, policies, and logs.
+
+Satellite Verification lets an operator draw a reservoir polygon, compare water extent across two date ranges, and check the result against a SCADA level. It uses Sentinel-2 imagery through Google Earth Engine when `EARTH_ENGINE_PROJECT` and Google application credentials are configured. `GEMINI_API_KEY` enables a short operator explanation using the model selected by `GEMINI_MODEL`. Without cloud credentials, the same workflow runs with deterministic demo evidence, making it safe to present offline. Google AI Studio can be used to refine the Gemini prompt, but is not a runtime dependency.
 
 For the complete visible demonstration: **Run attack demo** → inspect **Threats** → open the **Incident** evidence → inspect the scoped **Defense** rule → verify **Services** continuity → **Run rollback test** → inspect the **Logs** audit evidence. The scenario restricts only the malicious session/source, proves an independent legitimate facility operation still succeeds, and visibly reverts a deliberately overrestrictive rule.
 
