@@ -48,7 +48,8 @@ class VisualInspectionService:
             "supported by this image. Identify the likely asset, visible condition, notable findings and plausible safety "
             "or maintenance risks. Do not claim hidden defects, cyber compromise, engineering certification, or certainty. "
             "Use 'unknown' when the image is insufficient. Keep the summary under 10 words. Return no more than "
-            "2 findings, 2 risks, and 2 recommendations. Every bullet must be 5 words or fewer. Recommendations "
+            "2 findings, 2 risks, and 2 recommendations. Finding and risk bullets must be 5 words or fewer. "
+            "Each recommendation may use up to 10 words and should name an action plus what to verify. Recommendations "
             "must be low-risk verification or qualified-inspection actions. Never instruct the operator to isolate, "
             "shut down, start, open, or close equipment; recommend escalation under approved procedures instead. "
             f"Operator context: {request.context.strip() or 'No additional context provided.'}"
@@ -84,7 +85,7 @@ class VisualInspectionService:
             result["summary"] = self._shorten(result.get("summary", "Visible condition requires review"), 10)
             result["findings"] = [self._shorten(item, 5) for item in result.get("findings", [])[:2]]
             result["risks"] = [self._shorten(item, 5) for item in result.get("risks", [])[:2]]
-            result["recommendations"] = [self._shorten(item, 5) for item in result.get("recommendations", [])[:2]]
+            result["recommendations"] = [self._shorten(item, 10) for item in result.get("recommendations", [])[:2]]
             digest = sha256((request.filename + request.image_base64[:512]).encode()).hexdigest()[:12]
             return VisualInspectionResult(
                 inspection_id=f"vis_{digest}",
