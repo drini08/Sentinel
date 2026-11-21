@@ -25,9 +25,9 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 
 .app-scale {
-  width: 111.111111%;
-  min-height: 111.111111vh;
-  transform: scale(.9);
+  width: 125%;
+  min-height: 125vh;
+  transform: scale(.8);
   transform-origin: top left;
 }
 
