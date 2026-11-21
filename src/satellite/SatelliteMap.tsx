@@ -23,7 +23,7 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
     let active = true;
     void import("leaflet").then((L) => {
       if (!active || !element.current) return;
-      const map = L.map(element.current, { zoomControl: true }).setView([42.823, 21.32], 11);
+      const map = L.map(element.current, { zoomControl: true }).setView([42.81, 21.36], 12);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors", maxZoom: 18,
       }).addTo(map);
