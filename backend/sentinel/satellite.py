@@ -34,6 +34,8 @@ class SatelliteService:
         if self.project:
             try:
                 metrics = self._earth_engine_metrics(request, vercel_oidc_token)
+            except SatelliteLiveError:
+                raise
             except Exception as error:
                 print(f"Earth Engine federation error: {type(error).__name__}: {error}", flush=True)
                 raise SatelliteLiveError("Earth Engine analysis is unavailable; check project registration and credentials") from error
