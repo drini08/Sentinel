@@ -78,11 +78,13 @@ export function VisualInspection() {
       <aside className="visual-result-column">
         {!result && <div className="panel visual-empty"><Sparkles size={24} /><strong>Ready for visual inspection</strong><p>Gemini will report only visible evidence and concise verification steps.</p></div>}
         {result && <div className={`panel visual-result condition-${result.condition}`}>
-          <header>{conditionIcon}<div><span>{result.condition}</span><h2>{result.asset_type}</h2></div><b>{Math.round(result.confidence * 100)}%</b></header>
+          <header><i>{conditionIcon}</i><div><span>{result.condition} condition</span><h2>{result.asset_type}</h2></div><b>{Math.round(result.confidence * 100)}% confidence</b></header>
           <p>{result.summary}</p>
-          <ResultList title="Visible findings" items={result.findings} />
-          <ResultList title="Potential risks" items={result.risks} empty="No visible risks identified" />
-          <ResultList title="Recommended checks" items={result.recommendations} />
+          <div className="visual-result-sections">
+            <ResultList title="Visible findings" items={result.findings} />
+            <ResultList title="Potential risks" items={result.risks} empty="No visible risks identified" />
+            <ResultList title="Recommended checks" items={result.recommendations} />
+          </div>
           <small>Gemini visual assessment · {result.inspection_id} · not an engineering certification</small>
         </div>}
       </aside>
