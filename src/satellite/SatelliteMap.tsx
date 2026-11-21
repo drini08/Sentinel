@@ -3,7 +3,13 @@ import { Check, Eraser, Pentagon, Undo2, X } from "lucide-react";
 import type { Coordinate } from "./types";
 import "leaflet/dist/leaflet.css";
 
-export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Coordinate[]; onChange: (polygon: Coordinate[]) => void; onDraftChange?: (polygon: Coordinate[] | null) => void }) {
+type SatelliteMapProps = {
+  polygon: Coordinate[];
+  onChange(polygon: Coordinate[]): void;
+  onDrawingChange(drawing: boolean): void;
+};
+
+export function SatelliteMap({ polygon, onChange, onDrawingChange }: SatelliteMapProps) {
   const element = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const shapeRef = useRef<import("leaflet").Polyline | import("leaflet").Polygon | null>(null);
@@ -16,7 +22,6 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
   useEffect(() => { draftRef.current = draft; }, [draft]);
-  useEffect(() => { onDraftChange?.(draft); }, [draft, onDraftChange]);
 
   useEffect(() => {
     if (!element.current || mapRef.current) return;
@@ -57,9 +62,9 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
       points.forEach(([lng, lat], index) => {
         const marker = L.marker([lat, lng], {
           draggable: true, keyboard: true,
-          title: drawing && index === 0 && points.length >= 3 ? "Click to close polygon" : `Vertex ${index + 1}`,
+          title: `Vertex ${index + 1}`,
           icon: L.divIcon({
-            className: `satellite-vertex ${drawing && index === 0 ? "is-first" : ""}`,
+            className: "satellite-vertex",
             html: `<span>${index + 1}</span>`, iconSize: [24, 24], iconAnchor: [12, 12],
           }),
         }).addTo(vertices);
@@ -69,39 +74,37 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
           next[index] = [position.lng, position.lat];
           if (draftRef.current !== null) setDraft(next); else onChangeRef.current(next);
         });
-        if (drawing && index === 0 && points.length >= 3) {
-          marker.on("click", (event) => {
-            L.DomEvent.stopPropagation(event.originalEvent);
-            onChangeRef.current(points);
-            setDraft(null);
-          });
-        }
       });
       verticesRef.current = vertices;
     });
     return () => { active = false; };
   }, [drawing, points, polygon]);
 
+  const stopDrawing = () => {
+    setDraft(null);
+    onDrawingChange(false);
+  };
+
   const finishDrawing = () => {
     if (!draft || draft.length < 3) return;
     onChange(draft);
-    setDraft(null);
+    stopDrawing();
   };
 
   return <div className={`satellite-map-shell ${drawing ? "is-drawing" : ""}`}>
     <div ref={element} className="satellite-map" aria-label="Reservoir polygon map" />
     <div className="satellite-map-tools">
-      {!drawing && <button type="button" onClick={() => setDraft([])}><Pentagon size={14} />Draw new polygon</button>}
+      {!drawing && <button type="button" onClick={() => { setDraft([]); onDrawingChange(true); }}><Pentagon size={14} />Draw new polygon</button>}
       {drawing && <>
         <button type="button" className="is-primary" onClick={finishDrawing} disabled={points.length < 3}><Check size={14} />Finish polygon</button>
         <button type="button" onClick={() => setDraft((current) => current?.slice(0, -1) ?? null)} disabled={points.length === 0}><Undo2 size={14} />Undo point</button>
-        <button type="button" onClick={() => setDraft(null)}><X size={14} />Cancel</button>
+        <button type="button" onClick={stopDrawing}><X size={14} />Cancel</button>
       </>}
-      <button type="button" onClick={() => { setDraft(null); onChange([]); }}><Eraser size={14} />Clear area</button>
+      <button type="button" onClick={() => { stopDrawing(); onChange([]); }}><Eraser size={14} />Clear area</button>
     </div>
     <div className="satellite-map-readout">
       {drawing
-        ? points.length < 3 ? `${points.length} vertices · add ${3 - points.length} more` : `${points.length} vertices · finish or click point 1`
+        ? points.length < 3 ? `${points.length} vertices · add ${3 - points.length} more` : `${points.length} vertices · click Finish polygon`
         : points.length ? `${points.length} vertices · drag points to adjust` : "No area selected · draw a polygon"}
     </div>
   </div>;

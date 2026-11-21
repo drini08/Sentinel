@@ -1,6 +1,7 @@
 import { Bell, ChevronDown, CircleUserRound } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Brand } from "./Brand";
+import { RouteContent } from "./RouteContent";
 
 const navigation = [
   ["Overview", "/"],
@@ -37,7 +38,7 @@ export function Shell() {
         </div>
       </header>
       <main className="mx-auto max-w-[1480px] px-5 pb-16 pt-8 lg:px-8 lg:pt-12">
-        <Outlet />
+        <RouteContent><Outlet /></RouteContent>
       </main>
       <footer className="border-t border-white/[0.055] px-5 py-7 text-[11px] tracking-[0.14em] text-muted lg:px-8">
         <div className="mx-auto flex max-w-[1416px] items-center justify-between">

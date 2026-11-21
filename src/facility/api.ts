@@ -26,7 +26,18 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const facilityApi: FacilityApi = {
-  getSnapshot: () => request<FacilitySnapshot>("/api/v1/facility/snapshot"),
+  async getSnapshot() {
+    const controller = new AbortController();
+    const timeout = globalThis.setTimeout(() => controller.abort(), 10_000);
+    try {
+      return await request<FacilitySnapshot>("/api/v1/facility/snapshot", { signal: controller.signal });
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error("Facility telemetry request timed out.");
+      throw error;
+    } finally {
+      globalThis.clearTimeout(timeout);
+    }
+  },
   executeCommand: (assetId: string, body: FacilityCommandRequest) =>
     request<FacilityCommandResult>(`/api/v1/facility/assets/${assetId}/commands`, { method: "POST", body }),
   reset: () => request<FacilitySnapshot>("/api/v1/facility/reset", { method: "POST", headers: operatorHeaders }),

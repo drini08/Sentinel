@@ -35,7 +35,7 @@ from .simulation import run_compromised_session_scenario
 from .store import EvidenceStore
 from .jury import JuryService
 from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, JuryStatus
-from .jury_store import build_jury_store
+from .jury_store import PostgresJuryStore, build_jury_store
 from .satellite import SatelliteLiveError, SatelliteService
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
 from .visual_inspection import VisualInspectionService, VisualInspectionUnavailable
@@ -419,7 +419,11 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     def facility_snapshot() -> FacilitySnapshot:
         snapshot = facility.engine.snapshot()
-        active_run = jury.status().active_run
+        active_run = (
+            jury_store.latest_jury_run_for_projection()
+            if isinstance(jury_store, PostgresJuryStore)
+            else jury.status().active_run
+        )
         if active_run is None:
             return snapshot
         projected_status = "threat-detected" if active_run.status == "running" else active_run.status

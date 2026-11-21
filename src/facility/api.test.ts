@@ -21,7 +21,10 @@ const snapshot: FacilitySnapshot = {
 };
 
 describe("facilityApi", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it("maps the snapshot endpoint response", async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(snapshot), { status: 200 }));
@@ -32,6 +35,19 @@ describe("facilityApi", () => {
       "http://127.0.0.1:8000/api/v1/facility/snapshot",
       expect.objectContaining({ headers: { "Content-Type": "application/json" } }),
     );
+  });
+
+  it("aborts telemetry requests that stall", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn((_url: string, options: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        options.signal?.addEventListener("abort", () => reject(options.signal?.reason), { once: true });
+      }),
+    ));
+
+    const pending = expect(facilityApi.getSnapshot()).rejects.toThrow("Facility telemetry request timed out.");
+    await vi.advanceTimersByTimeAsync(10_000);
+    await pending;
   });
 
   it("sends operator context with an asset command", async () => {

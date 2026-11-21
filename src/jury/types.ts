@@ -17,7 +17,7 @@ export type JuryStatus = { active_run: JuryRun | null };
 
 export type JuryApi = {
   trigger(scenario: JuryScenario, requestId?: string): Promise<JuryRun>;
-  getStatus(): Promise<JuryStatus>;
+  getStatus(signal?: AbortSignal): Promise<JuryStatus>;
   getRun?(runId: string): Promise<JuryRun>;
   reset?(): Promise<JuryStatus>;
 };

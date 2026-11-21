@@ -584,7 +584,6 @@ html, body { background: #e9eaeb; }
 .satellite-map-tools button:disabled { cursor:not-allowed;opacity:.48; }
 .satellite-map-shell.is-drawing .leaflet-container { cursor:crosshair; }
 .satellite-vertex { display:grid!important;place-items:center;border:3px solid white;border-radius:50%;color:white;background:#31566d;box-shadow:0 2px 8px rgba(8,25,34,.4);font:700 9px ui-monospace,monospace; }
-.satellite-vertex.is-first { background:#ef9f3f;box-shadow:0 0 0 5px rgba(239,159,63,.26),0 2px 8px rgba(8,25,34,.4); }
 .satellite-vertex span { pointer-events:none; }
 .satellite-map-readout { position:absolute;left:14px;bottom:14px;z-index:500;border-radius:8px;padding:8px 10px;color:#dce7eb;background:rgba(16,28,35,.82);font:600 9px ui-monospace,monospace;letter-spacing:.05em;text-transform:uppercase;backdrop-filter:blur(10px); }
 .satellite-controls { display:grid;grid-template-columns:1fr auto;align-items:end;gap:18px;padding:18px 8px 6px; }

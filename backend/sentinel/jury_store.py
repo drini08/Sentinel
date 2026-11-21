@@ -76,11 +76,26 @@ class PostgresJuryStore:
     def latest_jury_run(self) -> JuryRun | None:
         with self._connect() as connection:
             self._ensure_schema(connection)
-            row = connection.execute(
-                """SELECT runs.payload::text FROM jury_demo_state state
-                LEFT JOIN jury_runs runs ON runs.run_id = state.active_run_id
-                WHERE state.state_id = 1"""
-            ).fetchone()
+            return self._read_latest_jury_run(connection)
+
+    def latest_jury_run_for_projection(self) -> JuryRun | None:
+        import psycopg
+
+        try:
+            with psycopg.connect(self.database_url, connect_timeout=3) as connection:
+                connection.execute("SET LOCAL statement_timeout = '2s'")
+                return self._read_latest_jury_run(connection)
+        except (psycopg.OperationalError, psycopg.errors.UndefinedTable):
+            # An unavailable database or a fresh deployment may lack the optional overlay.
+            return None
+
+    @staticmethod
+    def _read_latest_jury_run(connection: object) -> JuryRun | None:
+        row = connection.execute(  # type: ignore[attr-defined]
+            """SELECT runs.payload::text FROM jury_demo_state state
+            LEFT JOIN jury_runs runs ON runs.run_id = state.active_run_id
+            WHERE state.state_id = 1"""
+        ).fetchone()
         return JuryRun.model_validate_json(row[0]) if row and row[0] else None
 
     def reset_jury_demo(self) -> None:

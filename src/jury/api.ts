@@ -18,7 +18,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const juryApi: JuryApi = {
   trigger: (scenario: JuryScenario, requestId?: string) =>
     request<JuryRun>("/api/v1/jury/attacks", { method: "POST", body: JSON.stringify({ scenario, request_id: requestId }) }),
-  getStatus: () => request<JuryStatus>("/api/v1/jury/status"),
+  getStatus: (signal) => request<JuryStatus>("/api/v1/jury/status", { signal }),
   getRun: (runId: string) => request<JuryRun>(`/api/v1/jury/runs/${encodeURIComponent(runId)}`),
   reset: () => request<JuryStatus>("/api/v1/jury/reset", {
     method: "POST",

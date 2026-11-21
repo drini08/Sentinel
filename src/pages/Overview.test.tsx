@@ -5,19 +5,7 @@ import { Overview } from "./Overview";
 
 afterEach(() => vi.restoreAllMocks());
 
-it("presents a live command-center entry point with direct operational actions", async () => {
-  vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
-    generated_at: "2026-11-20T12:00:00Z",
-    protected_services: 4,
-    healthy_services: 4,
-    active_incidents: 1,
-    critical_incidents: 1,
-    active_rules: 1,
-    restricted_sessions: 1,
-    continuity_ok: true,
-    recent_incidents: [],
-    recent_audit: [],
-  }), { status: 200, headers: { "Content-Type": "application/json" } }));
+it("presents the command-center entry point with direct operational actions", () => {
   const { container } = render(<MemoryRouter><Overview /></MemoryRouter>);
 
   expect(screen.getByRole("heading", { name: "Critical infrastructure. Continuously defended." })).toBeInTheDocument();
@@ -32,16 +20,15 @@ it("presents a live command-center entry point with direct operational actions",
   expect(screen.queryByText("Requests analyzed")).not.toBeInTheDocument();
   expect(screen.queryByText("PROTECTION ACTIVE")).not.toBeInTheDocument();
   expect(container.firstElementChild).toHaveClass("overview-apple");
-  expect(await screen.findByText("1 active incident")).toBeInTheDocument();
-  expect(screen.getByText("Continuity verified")).toBeInTheDocument();
 });
 
-it("does not fabricate service or flow values while the API is offline", async () => {
-  vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+it("loads without backend requests or a preset service summary", () => {
+  const fetch = vi.spyOn(globalThis, "fetch");
 
   render(<MemoryRouter><Overview /></MemoryRouter>);
 
-  expect(await screen.findByText("Live posture unavailable")).toBeInTheDocument();
+  expect(fetch).not.toHaveBeenCalled();
   expect(screen.queryByText("4 services protected")).not.toBeInTheDocument();
+  expect(screen.queryByText("Continuity verified")).not.toBeInTheDocument();
   expect(screen.queryByText("41.2 m³/s uninterrupted")).not.toBeInTheDocument();
 });

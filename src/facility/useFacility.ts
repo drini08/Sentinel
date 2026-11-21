@@ -44,9 +44,16 @@ export function useFacility({ api = facilityApi, pollMs = 4000 }: UseFacilityOpt
   }, [api]);
 
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), pollMs);
-    return () => window.clearInterval(timer);
+    const refreshWhenVisible = () => {
+      if (!document.hidden) void refresh();
+    };
+    refreshWhenVisible();
+    const timer = window.setInterval(refreshWhenVisible, pollMs);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [pollMs, refresh]);
 
   const executeCommand = useCallback(

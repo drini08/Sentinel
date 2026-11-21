@@ -1,0 +1,90 @@
+.facility-view-toolbar {
+  position: absolute;
+  top: 68px;
+  left: 18px;
+  right: 18px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: #c8dedd;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.facility-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #3c686d;
+  border-radius: 8px;
+  color: #d6f0f0;
+  background: #14242a;
+  font-weight: 600;
+  pointer-events: auto;
+}
+
+.facility-view-toggle:hover, .facility-view-toggle:focus-visible {
+  border-color: #8fc0c6;
+  background: #223b43;
+}
+
+.facility-view-loading {
+  position: absolute;
+  top: 77px;
+  left: 158px;
+  z-index: 7;
+  color: #c8dedd;
+  font-size: 12px;
+}
+
+.facility-asset-list {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 186px), 1fr));
+  gap: 10px;
+  padding: 120px 18px 115px;
+}
+
+.facility-stage:has(.facility-drawer) .facility-asset-list {
+  margin-right: 338px;
+}
+
+.facility-asset-list button {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
+  border: 1px solid #2a454c;
+  border-radius: 9px;
+  padding: 9px 12px;
+  text-align: left;
+  color: #d6eeef;
+  background: #102025;
+  font-size: 13px;
+}
+
+.facility-asset-list button:hover, .facility-asset-list button[aria-pressed="true"] {
+  border-color: #64999f;
+  background: #1a3139;
+}
+
+.facility-asset-list small {
+  color: #a4bdc2;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.facility-asset-list .facility-asset-alert {
+  color: #ffc7cc;
+}
+
+@media (max-width: 900px) {
+  .facility-stage:has(.facility-drawer) .facility-asset-list { margin-right: 0; }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Play, RotateCcw, ShieldAlert, Sparkles } from "lucide-react";
 import { AssetDrawer } from "../facility/AssetDrawer";
-import { FacilityScene } from "../facility/FacilityScene";
+import { FacilityView } from "../facility/FacilityView";
 import { FacilityStatus } from "../facility/FacilityStatus";
 import { useFacility } from "../facility/useFacility";
 import type { FacilityApi } from "../facility/types";
@@ -23,21 +23,6 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
     media.addEventListener?.("change", update);
     return () => media.removeEventListener?.("change", update);
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    const refresh = async () => {
-      try {
-        const status = await juryApiClient.getStatus();
-        if (active) setJuryRun(status.active_run);
-      } catch {
-        // The facility retains its last confirmed visual state while reconnecting.
-      }
-    };
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 5000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [juryApiClient]);
 
   const alertAssetId = facility.lastCommand && !facility.lastCommand.applied
     ? facility.lastCommand.asset.id
@@ -65,7 +50,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
         {facility.snapshot ? (
           <>
             <FacilityStatus snapshot={facility.snapshot} stale={facility.isStale} />
-            <FacilityScene
+            <FacilityView
               snapshot={facility.snapshot}
               selectedId={facility.selectedId}
               alertAssetId={alertAssetId}
@@ -80,8 +65,18 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
             />
             <div className="facility-stage-hint"><Sparkles size={12} /> Click any asset to inspect telemetry and controls</div>
           </>
+        ) : facility.error ? (
+          <div className="facility-loading">
+            <strong>Facility data is unavailable</strong>
+            <small role="status">{facility.error}</small>
+            <button type="button" className="facility-view-toggle" onClick={() => void facility.refresh()}>
+              <RotateCcw size={14} />Retry
+            </button>
+          </div>
         ) : (
-          <div className="facility-loading"><span /><strong>Synchronizing facility state</strong><small>{facility.error ?? "Connecting to SENTINEL security core…"}</small></div>
+          <div className="facility-loading" role="status">
+            <span aria-hidden="true" /><strong>Synchronizing facility state</strong><small>Connecting to SENTINEL security core…</small>
+          </div>
         )}
 
         {facility.lastCommand && (
@@ -110,7 +105,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
           <div><strong>Attack contained. Legitimate operations continued.</strong><span>Critical command blocked with risk {facility.scenario.attack.decision.assessment?.risk_score ?? 94}; independent operator access remained available.</span></div>
         </div>
       )}
-      <JuryAccess api={juryApiClient} />
+      <JuryAccess api={juryApiClient} onRunChange={setJuryRun} />
     </div>
   );
 }

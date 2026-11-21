@@ -5,9 +5,15 @@ import { Facility } from "./Facility";
 import type { JuryApi } from "../jury/types";
 
 vi.mock("../facility/FacilityScene", () => ({
-  FacilityScene: ({ snapshot, onSelect, alertAssetId }: { snapshot: FacilitySnapshot; onSelect(id: string): void; alertAssetId?: string | null }) => (
+  FacilityScene: ({ snapshot, onSelect, alertAssetId, onUnavailable }: {
+    snapshot: FacilitySnapshot;
+    onSelect(id: string): void;
+    alertAssetId?: string | null;
+    onUnavailable(): void;
+  }) => (
     <div aria-label="3D facility">
       {alertAssetId && <span data-testid="alerted-3d-asset">{alertAssetId}</span>}
+      <button type="button" onClick={onUnavailable}>Simulate context loss</button>
       {snapshot.assets.map((asset) => (
         <button key={asset.id} type="button" onClick={() => onSelect(asset.id)}>Select {asset.name}</button>
       ))}
@@ -57,6 +63,7 @@ describe("Facility page", () => {
     const api = createApi();
     render(<Facility api={api} />);
 
+    expect(screen.queryByLabelText("3D facility")).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "Select Reservoir A" }));
     fireEvent.click(screen.getByRole("button", { name: "Isolate reservoir" }));
 
@@ -65,6 +72,29 @@ describe("Facility page", () => {
       expect.objectContaining({ command: { action: "isolate", value: true } }),
     ));
     expect(await screen.findByText("Command applied")).toBeInTheDocument();
+  });
+
+  it("keeps the asset drawer usable if the optional 3D view becomes unavailable", async () => {
+    render(<Facility api={createApi()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select Reservoir A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open 3D view" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Simulate context loss" }));
+
+    expect(screen.getByText(/3D view unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select Reservoir A" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Isolate reservoir" })).toBeEnabled();
+  });
+
+  it("recovers through Retry after the initial facility read fails", async () => {
+    const api = createApi();
+    vi.mocked(api.getSnapshot).mockRejectedValueOnce(new Error("Request timed out"));
+    render(<Facility api={api} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+
+    expect(await screen.findByRole("button", { name: "Select Reservoir A" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 
   it("runs the compromised operator demonstration and reports continuity", async () => {
@@ -99,6 +129,7 @@ describe("Facility page", () => {
     expect(await screen.findByText("Jury attack contained")).toBeInTheDocument();
     expect(screen.getAllByText(/command injection/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Risk 100")).toBeInTheDocument();
-    expect(screen.getByTestId("alerted-3d-asset")).toHaveTextContent("dosing-unit");
+    fireEvent.click(await screen.findByRole("button", { name: "Open 3D view" }));
+    expect(await screen.findByTestId("alerted-3d-asset")).toHaveTextContent("dosing-unit");
   });
 });

@@ -12,7 +12,8 @@ export function buildJuryAttackUrl(publicUrl: string | undefined, origin: string
 export function JuryAccess({
   api = juryApi,
   publicUrl = import.meta.env.VITE_PUBLIC_APP_URL as string | undefined,
-}: { api?: JuryApi; publicUrl?: string }) {
+  onRunChange,
+}: { api?: JuryApi; publicUrl?: string; onRunChange?(run: JuryRun | null): void }) {
   const attackUrl = useMemo(() => buildJuryAttackUrl(publicUrl, window.location.origin), [publicUrl]);
   const [run, setRun] = useState<JuryRun | null>(null);
   const [connected, setConnected] = useState(false);
@@ -20,18 +21,37 @@ export function JuryAccess({
 
   useEffect(() => {
     let active = true;
+    let pending: AbortController | null = null;
     const refresh = async () => {
+      if (document.hidden || pending) return;
+      const controller = new AbortController();
+      pending = controller;
+      const deadline = window.setTimeout(() => controller.abort(), 10_000);
       try {
-        const status = await api.getStatus();
-        if (active) { setRun(status.active_run); setConnected(true); }
+        const status = await api.getStatus(controller.signal);
+        if (active) {
+          setRun(status.active_run);
+          setConnected(true);
+          onRunChange?.(status.active_run);
+        }
       } catch {
         if (active) setConnected(false);
+      } finally {
+        window.clearTimeout(deadline);
+        pending = null;
       }
     };
     void refresh();
     const timer = window.setInterval(() => void refresh(), 2000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [api]);
+    const onVisibilityChange = () => { void refresh(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      pending?.abort();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [api, onRunChange]);
 
   const copy = async () => {
     await navigator.clipboard?.writeText(attackUrl);
@@ -43,6 +63,7 @@ export function JuryAccess({
     if (!api.reset) return;
     const status = await api.reset();
     setRun(status.active_run);
+    onRunChange?.(status.active_run);
   };
 
   return (

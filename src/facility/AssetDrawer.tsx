@@ -36,7 +36,7 @@ export function AssetDrawer({ asset, disabled, onClose, onCommand }: AssetDrawer
   const closed = asset.status === "closed";
 
   return (
-    <aside className="facility-drawer" aria-label={`${asset.name} controls`}>
+    <aside className="facility-drawer no-scrollbar" aria-label={`${asset.name} controls`} tabIndex={0}>
       <div className="facility-drawer-head">
         <div>
           <div className="facility-drawer-kicker">{asset.asset_type.replaceAll("_", " ")}</div>

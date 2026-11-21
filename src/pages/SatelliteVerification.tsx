@@ -33,7 +33,7 @@ function readingFromSnapshot(snapshot: FacilitySnapshot): ScadaReading | null {
 
 export function SatelliteVerification({ api = satelliteApi, facilityApiClient = facilityApi }: { api?: SatelliteApi; facilityApiClient?: FacilityApi }) {
   const [polygon, setPolygon] = useState<Coordinate[]>([]);
-  const [draftPolygon, setDraftPolygon] = useState<Coordinate[] | null>(null);
+  const [drawingPolygon, setDrawingPolygon] = useState(false);
   const [status, setStatus] = useState<SatelliteStatus | null>(null);
   const [result, setResult] = useState<SatelliteAnalysisResult | null>(null);
   const [pending, setPending] = useState(false);
@@ -66,28 +66,28 @@ export function SatelliteVerification({ api = satelliteApi, facilityApiClient = 
     setAnalyzedVertices(0);
   };
 
-  const changeDraft = (next: Coordinate[] | null) => {
-    setDraftPolygon(next);
-    if (next !== null) {
+  const changeDrawing = (drawing: boolean) => {
+    setDrawingPolygon(drawing);
+    if (drawing) {
       setResult(null);
       setAnalyzedVertices(0);
     }
   };
 
+  const canAnalyze = !pending && status?.mode === "live" && !drawingPolygon
+    && polygon.length >= 3 && scada !== null && Object.values(periods).every(Boolean);
+
   const analyze = async () => {
-    const selectedPolygon = draftPolygon ?? polygon;
-    if (selectedPolygon.length < 3) { setError("Draw at least three polygon points."); return; }
-    if (Object.values(periods).some((period) => !period)) { setError("Select both imagery periods."); return; }
-    if (!scada) { setError("SCADA telemetry is unavailable."); return; }
+    if (!canAnalyze) return;
     setPending(true); setError(null);
     try {
       const analysis = await api.analyze({
-        polygon: selectedPolygon,
+        polygon,
         ...periods,
         scada_level_percent: scada.level,
       });
       setResult(analysis);
-      setAnalyzedVertices(selectedPolygon.length);
+      setAnalyzedVertices(polygon.length);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Satellite analysis failed"); }
     finally { setPending(false); }
   };
@@ -96,7 +96,7 @@ export function SatelliteVerification({ api = satelliteApi, facilityApiClient = 
     <PageHeader eyebrow="Physical ground truth" title="Satellite Intelligence" description="Draw an operational boundary, measure visible water change with Earth Engine, and compare independent evidence with SCADA telemetry." action={<Status tone={status?.mode === "live" ? "light" : "neutral"}>{status?.mode === "live" ? "Live analysis ready" : "Live analysis unavailable"}</Status>} />
     <div className="satellite-layout">
       <section className="panel satellite-workspace">
-        <SatelliteMap polygon={polygon} onChange={changePolygon} onDraftChange={changeDraft} />
+        <SatelliteMap polygon={polygon} onChange={changePolygon} onDrawingChange={changeDrawing} />
         <div className="satellite-periods">
           <fieldset><legend>Baseline imagery period</legend><label>From<input type="date" value={periods.baseline_start} onChange={(event) => setPeriods({ ...periods, baseline_start: event.target.value })} /></label><label>To<input type="date" value={periods.baseline_end} onChange={(event) => setPeriods({ ...periods, baseline_end: event.target.value })} /></label></fieldset>
           <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
@@ -114,7 +114,9 @@ export function SatelliteVerification({ api = satelliteApi, facilityApiClient = 
         </div>
         <div className="satellite-controls">
           <div><span>SCADA comparison input</span><strong>{scada ? `${scada.level}% automatically synchronized` : "Waiting for telemetry"}</strong></div>
-          <button type="button" className="button-primary" disabled={pending || status?.mode !== "live" || (draftPolygon ?? polygon).length < 3 || !scada || Object.values(periods).some((period) => !period)} onClick={() => void analyze()}><ScanSearch size={15} />{pending ? "Analyzing imagery…" : draftPolygon ? "Analyze drawn area" : "Analyze selected area"}</button>
+          <button type="button" className="button-primary" disabled={!canAnalyze} onClick={() => void analyze()}>
+            <ScanSearch size={15} />{pending ? "Analyzing imagery…" : "Analyze selected area"}
+          </button>
         </div>
       </section>
       <aside className="satellite-side">

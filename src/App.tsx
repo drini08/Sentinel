@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "./components/Shell";
 import { SectionLayout } from "./components/SectionLayout";
+import { RouteContent } from "./components/RouteContent";
+import { Overview } from "./pages/Overview";
 
-const Overview = lazy(() => import("./pages/Overview").then((module) => ({ default: module.Overview })));
 const Incidents = lazy(() => import("./pages/Incidents").then((module) => ({ default: module.Incidents })));
 const Services = lazy(() => import("./pages/Services").then((module) => ({ default: module.Services })));
 const Policies = lazy(() => import("./pages/Policies").then((module) => ({ default: module.Policies })));
@@ -19,8 +20,8 @@ const Facility = lazy(() => import("./pages/Facility").then((module) => ({ defau
 
 export function App() {
   return (
-    <Suspense fallback={<div className="route-loading"><span />Loading SENTINEL…</div>}><Routes>
-      <Route path="attack" element={<AttackConsole />} />
+    <Routes>
+      <Route path="attack" element={<RouteContent><AttackConsole /></RouteContent>} />
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
         <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Infrastructure View", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Visual Inspection", "/facility/inspection"], ["Services & Health", "/facility/services"]]} />}>
@@ -50,6 +51,6 @@ export function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-    </Routes></Suspense>
+    </Routes>
   );
 }
