@@ -45,10 +45,8 @@ def default_database_path(vercel: bool) -> Path:
 
 
 def production_database_url(vercel: bool, database_url: str | None) -> str | None:
-    # Vercel's filesystem is ephemeral. Production normally requires the shared
-    # Postgres jury store, but the hackathon deployment can opt into a clearly
-    # labelled temporary store until a managed database is connected.
-    if vercel and not database_url and os.getenv("SENTINEL_ALLOW_EPHEMERAL_DB", "").lower() != "true":
+    # Vercel production requires shared Postgres persistence for jury state.
+    if vercel and not database_url:
         raise RuntimeError("DATABASE_URL is required for shared jury state on Vercel")
     return database_url
 
@@ -113,6 +111,10 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     @application.get("/api/v1/satellite/status", response_model=SatelliteIntegrationStatus, tags=["satellite"])
     def satellite_status() -> SatelliteIntegrationStatus:
         return satellite.status()
+
+    @application.get("/api/v1/satellite/auth-status", tags=["satellite"])
+    def satellite_auth_status(x_vercel_oidc_token: str | None = Header(default=None)) -> dict[str, bool]:
+        return {"request_oidc_token": bool(x_vercel_oidc_token), "environment_oidc_token": bool(os.getenv("VERCEL_OIDC_TOKEN"))}
 
     @application.post("/api/v1/satellite/analyze", response_model=SatelliteAnalysisResult, tags=["satellite"])
     def analyze_satellite_area(request: SatelliteAnalysisRequest, x_vercel_oidc_token: str | None = Header(default=None)) -> SatelliteAnalysisResult:
