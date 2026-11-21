@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import json
 import os
+import base64
 from hashlib import sha256
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
+
+
+class SatelliteLiveError(RuntimeError):
+    """Raised when configured live Earth Engine analysis cannot be completed."""
 
 
 class SatelliteService:
@@ -25,10 +30,13 @@ class SatelliteService:
         )
 
     def analyze(self, request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
-        try:
-            metrics = self._earth_engine_metrics(request) if self.project else self._demo_metrics(request)
-            source = "earth-engine" if self.project else "demo"
-        except Exception:
+        if self.project:
+            try:
+                metrics = self._earth_engine_metrics(request)
+            except Exception as error:
+                raise SatelliteLiveError("Earth Engine analysis is unavailable; check project registration and credentials") from error
+            source = "earth-engine"
+        else:
             metrics = self._demo_metrics(request)
             source = "demo"
 
@@ -80,7 +88,21 @@ class SatelliteService:
     def _earth_engine_metrics(self, request: SatelliteAnalysisRequest) -> dict[str, float | str | None]:
         import ee  # type: ignore[import-untyped]
 
-        ee.Initialize(project=self.project)
+        credentials_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON_BASE64")
+        if credentials_json:
+            from google.oauth2.service_account import Credentials
+
+            decoded = base64.b64decode(credentials_json, validate=True)
+            service_account_info = json.loads(decoded.decode("utf-8"))
+            credentials = Credentials.from_service_account_info(
+                service_account_info,
+                scopes=["https://www.googleapis.com/auth/earthengine", "https://www.googleapis.com/auth/cloud-platform"],
+            )
+            ee.Initialize(credentials=credentials, project=self.project)
+        else:
+            # Local development keeps supporting GOOGLE_APPLICATION_CREDENTIALS,
+            # Earth Engine's persisted OAuth credentials, and ADC.
+            ee.Initialize(project=self.project)
         geometry = ee.Geometry.Polygon([request.polygon])
 
         def composite(start: str, end: str):

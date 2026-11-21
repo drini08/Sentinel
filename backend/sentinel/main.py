@@ -36,7 +36,7 @@ from .store import EvidenceStore
 from .jury import JuryService
 from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, JuryStatus
 from .jury_store import build_jury_store
-from .satellite import SatelliteService
+from .satellite import SatelliteLiveError, SatelliteService
 from .satellite_models import SatelliteAnalysisRequest, SatelliteAnalysisResult, SatelliteIntegrationStatus
 
 
@@ -110,7 +110,10 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
 
     @application.post("/api/v1/satellite/analyze", response_model=SatelliteAnalysisResult, tags=["satellite"])
     def analyze_satellite_area(request: SatelliteAnalysisRequest) -> SatelliteAnalysisResult:
-        result = satellite.analyze(request)
+        try:
+            result = satellite.analyze(request)
+        except SatelliteLiveError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
         defense.audit(
             "satellite", "area_analyzed", "sentinel-satellite-verification", "satellite_analysis",
             result.analysis_id, "mismatch" if result.mismatch_detected else "consistent",
