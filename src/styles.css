@@ -617,9 +617,9 @@ html, body { background: #e9eaeb; }
 .visual-result-list { padding:21px 0 7px; }
 .visual-result-list h3 { font-size:11px; }
 .visual-result-list ul { gap:12px;margin-top:15px;font-size:15px; }
-.visual-result-list:last-child { margin:7px -14px 0;border:0;border-radius:10px;padding:19px 14px 17px;background:#ecefef; }
-.visual-result-list:last-child h3 { color:#4e626d;font-size:12px; }
-.visual-result-list:last-child ul { gap:14px;margin-top:17px;color:#27323a;font-size:17px;font-weight:600;line-height:1.45; }
+.visual-result-list:last-child { margin:25px -14px 0;border:0;border-radius:10px;padding:21px 14px 19px;background:#ecefef; }
+.visual-result-list:last-child h3 { color:#4e626d;font-size:14px; }
+.visual-result-list:last-child ul { gap:15px;margin-top:18px;color:#27323a;font-size:19px;font-weight:600;line-height:1.45; }
 .visual-result-list:last-child li { padding-left:20px; }
 .visual-result-list:last-child li::before { top:.65em;width:9px;height:2px;background:#567283; }
 .visual-result>small { margin-top:23px;font-size:9px; }
