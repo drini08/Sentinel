@@ -14,11 +14,11 @@ function Building({ width = 2.2, height = 1.5, depth = 1.7 }: { width?: number; 
     <>
       <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color="#17282c" metalness={0.55} roughness={0.4} />
+        <meshStandardMaterial color="#29454b" metalness={0.5} roughness={0.42} />
       </mesh>
       <mesh castShadow position={[0, height + 0.1, 0]}>
         <boxGeometry args={[width + 0.18, 0.18, depth + 0.18]} />
-        <meshStandardMaterial color="#284247" metalness={0.72} roughness={0.3} />
+        <meshStandardMaterial color="#42666d" metalness={0.68} roughness={0.32} />
       </mesh>
     </>
   );

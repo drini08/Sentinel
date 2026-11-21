@@ -31,7 +31,7 @@ export function Reservoir({ asset, selected, alert, onSelect }: AssetProps) {
     >
       <mesh castShadow receiveShadow position={[0, 0.85, 0]}>
         <cylinderGeometry args={[1.5, 1.62, 1.7, 48, 1, true]} />
-        <meshStandardMaterial color="#152a2e" metalness={0.7} roughness={0.32} emissive={accent} emissiveIntensity={0.11} />
+        <meshStandardMaterial color="#28474d" metalness={0.62} roughness={0.36} emissive={accent} emissiveIntensity={0.13} />
       </mesh>
       <mesh position={[0, 0.85, 0]}>
         <torusGeometry args={[1.56, 0.045, 10, 48]} />
@@ -51,7 +51,7 @@ export function Reservoir({ asset, selected, alert, onSelect }: AssetProps) {
       </mesh>
       <mesh castShadow position={[0, 1.78, 0]}>
         <cylinderGeometry args={[1.64, 1.64, 0.12, 48]} />
-        <meshStandardMaterial color="#21383b" metalness={0.72} roughness={0.28} />
+        <meshStandardMaterial color="#3c5b61" metalness={0.66} roughness={0.32} />
       </mesh>
       <Html center position={[0, 2.3, 0]} distanceFactor={13}>
         <button type="button" className={`facility-label ${selected ? "facility-label-selected" : ""}`} onClick={() => onSelect(asset.id)}>

@@ -26,10 +26,11 @@ export function FacilityScene({
         dpr={[0.75, 1]}
         camera={{ position: [18, 15, 21], fov: 40, near: 0.1, far: 120 }}
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+        onCreated={({ gl }) => { gl.toneMappingExposure = 1.45; }}
         onPointerMissed={() => onSelect(null)}
       >
-        <color attach="background" args={["#050a0d"]} />
-        <fog attach="fog" args={["#050a0d", 26, 58]} />
+        <color attach="background" args={["#122127"]} />
+        <fog attach="fog" args={["#122127", 34, 72]} />
         <Suspense fallback={null}>
           <FacilityWorld
             snapshot={snapshot}

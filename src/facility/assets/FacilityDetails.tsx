@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 
-const metal = { color: "#263d42", metalness: 0.78, roughness: 0.3 } as const;
-const darkMetal = { color: "#14272b", metalness: 0.72, roughness: 0.38 } as const;
+const metal = { color: "#405f65", metalness: 0.72, roughness: 0.34 } as const;
+const darkMetal = { color: "#294046", metalness: 0.64, roughness: 0.4 } as const;
 
 function ChemicalTank({ position }: { position: [number, number, number] }) {
   return <group position={position}>
