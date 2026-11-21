@@ -94,7 +94,12 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     application.state.defense = defense
     facility = FacilityService(FacilityEngine(), security)
     application.state.facility = facility
-    database_url = production_database_url(vercel_runtime, None if database_path is not None else os.getenv("DATABASE_URL"))
+    configured_database_url = None if database_path is not None else (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("POSTGRES_PRISMA_URL")
+    )
+    database_url = production_database_url(vercel_runtime, configured_database_url)
     jury_store = build_jury_store(store, database_url)
     jury = JuryService(facility, jury_store)
     application.state.jury = jury
