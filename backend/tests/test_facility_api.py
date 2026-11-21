@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
 
 from sentinel.main import create_app
 
@@ -32,6 +33,22 @@ def test_snapshot_exposes_the_complete_facility() -> None:
     assert response.status_code == 200
     assert len(response.json()["assets"]) == 13
     assert len(response.json()["connections"]) == 13
+
+
+def test_snapshot_allows_the_configured_lan_preview_origin(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("SENTINEL_CORS_ORIGINS", "http://192.168.1.120:5173")
+    client = TestClient(create_app(":memory:"))
+
+    response = client.options(
+        "/api/v1/facility/snapshot",
+        headers={
+            "Origin": "http://192.168.1.120:5173",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://192.168.1.120:5173"
 
 
 def test_legitimate_operator_command_changes_authoritative_state() -> None:

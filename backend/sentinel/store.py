@@ -21,6 +21,8 @@ from .models import (
     SessionProfile,
     SessionStatus,
 )
+from .jury_models import JuryRun
+from .jury_models import JuryAttackRateLimited
 
 
 class EvidenceStore:
@@ -100,6 +102,18 @@ class EvidenceStore:
                     policy_id TEXT PRIMARY KEY,
                     payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS jury_runs (
+                    run_id TEXT PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    payload TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS jury_demo_state (
+                    state_id INTEGER PRIMARY KEY CHECK (state_id = 1),
+                    active_run_id TEXT,
+                    last_started_at TEXT
+                );
+                INSERT OR IGNORE INTO jury_demo_state (state_id, active_run_id, last_started_at)
+                VALUES (1, NULL, NULL);
                 """
             )
 
@@ -332,3 +346,65 @@ class EvidenceStore:
             trusted_source_ip=row["trusted_source_ip"], trusted_device_id=row["trusted_device_id"],
             status=SessionStatus(row["status"]),
         ) for row in rows]
+
+    def claim_jury_run(self, run: JuryRun, cooldown_seconds: int) -> tuple[bool, JuryRun]:
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                existing_row = self._connection.execute(
+                    "SELECT payload FROM jury_runs WHERE run_id = ?", (run.run_id,)
+                ).fetchone()
+                if existing_row:
+                    self._connection.commit()
+                    return False, JuryRun.model_validate_json(existing_row["payload"])
+                state = self._connection.execute(
+                    "SELECT last_started_at FROM jury_demo_state WHERE state_id = 1"
+                ).fetchone()
+                if state and state["last_started_at"]:
+                    last_started = datetime.fromisoformat(state["last_started_at"])
+                    if (run.created_at - last_started).total_seconds() < cooldown_seconds:
+                        self._connection.rollback()
+                        raise JuryAttackRateLimited
+                self._connection.execute(
+                    "INSERT INTO jury_runs VALUES (?, ?, ?)",
+                    (run.run_id, run.created_at.isoformat(), self._payload(run)),
+                )
+                self._connection.execute(
+                    "UPDATE jury_demo_state SET active_run_id = ?, last_started_at = ? WHERE state_id = 1",
+                    (run.run_id, run.created_at.isoformat()),
+                )
+                self._connection.commit()
+                return True, run
+            except Exception:
+                if self._connection.in_transaction:
+                    self._connection.rollback()
+                raise
+
+    def update_jury_run(self, run: JuryRun) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "UPDATE jury_runs SET payload = ? WHERE run_id = ?",
+                (self._payload(run), run.run_id),
+            )
+
+    def get_jury_run(self, run_id: str) -> JuryRun | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT payload FROM jury_runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        return JuryRun.model_validate_json(row["payload"]) if row else None
+
+    def latest_jury_run(self) -> JuryRun | None:
+        with self._lock:
+            row = self._connection.execute(
+                """SELECT runs.payload FROM jury_demo_state state
+                LEFT JOIN jury_runs runs ON runs.run_id = state.active_run_id
+                WHERE state.state_id = 1"""
+            ).fetchone()
+        return JuryRun.model_validate_json(row["payload"]) if row and row["payload"] else None
+
+    def reset_jury_demo(self) -> None:
+        with self._lock, self._connection:
+            self._connection.execute(
+                "UPDATE jury_demo_state SET active_run_id = NULL WHERE state_id = 1"
+            )

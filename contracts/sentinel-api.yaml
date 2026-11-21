@@ -245,6 +245,57 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/FirewallRule" }
+  /api/v1/jury/status:
+    get:
+      operationId: juryStatus
+      summary: Read the latest shared jury simulation state.
+      responses:
+        "200":
+          description: Current public demonstration status.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JuryStatus" }
+  /api/v1/jury/attacks:
+    post:
+      operationId: triggerJuryAttack
+      summary: Launch one allowlisted synthetic attack simulation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JuryAttackRequest" }
+      responses:
+        "200":
+          description: Containment result visible to both jury and operator screens.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JuryRun" }
+        "422": { description: Scenario is not one of the allowlisted simulations. }
+        "429": { description: Another simulation was submitted too recently. }
+  /api/v1/jury/runs/{run_id}:
+    get:
+      operationId: getJuryRun
+      summary: Recover a jury simulation by its idempotency identifier.
+      parameters:
+        - { in: path, name: run_id, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Persisted simulation lifecycle and presentation result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JuryRun" }
+        "404": { description: Jury simulation was not found. }
+  /api/v1/jury/reset:
+    post:
+      operationId: resetJuryDemo
+      parameters:
+        - { in: header, name: X-Operator-Role, required: true, schema: { type: string, enum: [operator, admin] } }
+      responses:
+        "200":
+          description: Cleared shared demo state.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JuryStatus" }
   /api/v1/facility/snapshot:
     get:
       operationId: getFacilitySnapshot
@@ -570,3 +621,46 @@ components:
               sequence: { type: integer }
               event: { type: string }
               outcome: { type: string }
+    JuryAttackRequest:
+      type: object
+      additionalProperties: false
+      required: [scenario]
+      properties:
+        scenario: { type: string, enum: [sensor-spoofing, command-injection, compromised-operator] }
+        request_id: { type: string, minLength: 8, maxLength: 96, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]+$" }
+    JuryRun:
+      type: object
+      additionalProperties: false
+      required: [run_id, scenario, status, created_at, completed_at, affected_asset_ids, risk_score, continuity_verified, defense_actions, steps]
+      properties:
+        run_id: { type: string }
+        scenario: { type: string, enum: [sensor-spoofing, command-injection, compromised-operator] }
+        status: { type: string, enum: [running, contained, failed] }
+        created_at: { type: string, format: date-time }
+        completed_at: { type: [string, "null"], format: date-time }
+        affected_asset_ids:
+          type: array
+          items: { type: string }
+        risk_score: { type: integer, minimum: 0, maximum: 100 }
+        continuity_verified: { type: boolean }
+        defense_actions:
+          type: array
+          items: { type: string }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [sequence, event, outcome]
+            properties:
+              sequence: { type: integer }
+              event: { type: string }
+              outcome: { type: string }
+    JuryStatus:
+      type: object
+      additionalProperties: false
+      required: [active_run]
+      properties:
+        active_run:
+          oneOf:
+            - { $ref: "#/components/schemas/JuryRun" }
+            - { type: "null" }

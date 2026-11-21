@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { resolveApiBase } from "./apiBase";
 
-const API_BASE = (import.meta.env.VITE_SENTINEL_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
+const API_BASE = resolveApiBase(import.meta.env.VITE_SENTINEL_API_URL as string | undefined, import.meta.env.PROD);
 
 export type RiskSignal = { code: string; label: string; score: number; evidence: string };
 export type Detection = {

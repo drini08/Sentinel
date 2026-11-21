@@ -33,10 +33,41 @@ from .facility.service import FacilityService
 from .security import SecurityService
 from .simulation import run_compromised_session_scenario
 from .store import EvidenceStore
+from .jury import JuryService
+from .jury_models import JuryAttackRateLimited, JuryAttackRequest, JuryRun, JuryStatus
+from .jury_store import build_jury_store
+
+
+def default_database_path(vercel: bool) -> Path:
+    return Path("/tmp/sentinel.db") if vercel else Path("sentinel.db")
+
+
+def production_database_url(vercel: bool, database_url: str | None) -> str | None:
+    if vercel and not database_url:
+        raise RuntimeError("DATABASE_URL is required for shared jury state on Vercel")
+    return database_url
+
+
+def cors_origins() -> list[str]:
+    defaults = [
+        "http://127.0.0.1:4173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:5174",
+    ]
+    configured = [
+        origin.strip().rstrip("/")
+        for origin in os.getenv("SENTINEL_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys([*defaults, *configured]))
 
 
 def create_app(database_path: str | Path | None = None) -> FastAPI:
-    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH", "sentinel.db")
+    vercel_runtime = database_path is None and bool(os.getenv("VERCEL"))
+    resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH") or default_database_path(vercel_runtime)
     store = EvidenceStore(resolved_path)
     defense = DefenseService(store)
     security = SecurityService(store, defense=defense)
@@ -48,14 +79,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:4173",
-            "http://localhost:4173",
-            "http://127.0.0.1:5173",
-            "http://localhost:5173",
-            "http://127.0.0.1:5174",
-            "http://localhost:5174",
-        ],
+        allow_origins=cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -65,10 +89,45 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     application.state.defense = defense
     facility = FacilityService(FacilityEngine(), security)
     application.state.facility = facility
+    database_url = production_database_url(vercel_runtime, None if database_path is not None else os.getenv("DATABASE_URL"))
+    jury_store = build_jury_store(store, database_url)
+    if vercel_runtime:
+        jury_store.latest_jury_run()
+    jury = JuryService(facility, jury_store)
+    application.state.jury = jury
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
         return {"status": "ok", "service": "sentinel-security-core"}
+
+    @application.get("/api/v1/jury/status", response_model=JuryStatus, tags=["jury"])
+    def jury_status() -> JuryStatus:
+        return jury.status()
+
+    @application.post("/api/v1/jury/attacks", response_model=JuryRun, tags=["jury"])
+    def trigger_jury_attack(request: JuryAttackRequest) -> JuryRun:
+        try:
+            return jury.trigger(request)
+        except JuryAttackRateLimited as error:
+            raise HTTPException(
+                status_code=429,
+                detail="Wait before starting another attack simulation",
+                headers={"Retry-After": "2"},
+            ) from error
+
+    @application.get("/api/v1/jury/runs/{run_id}", response_model=JuryRun, tags=["jury"])
+    def get_jury_run(run_id: str) -> JuryRun:
+        run = jury.get_run(run_id)
+        if run is None:
+            raise HTTPException(status_code=404, detail="Jury run not found")
+        return run
+
+    @application.post("/api/v1/jury/reset", response_model=JuryStatus, tags=["jury"])
+    def reset_jury_demo(
+        operator_role: str | None = Header(default=None, alias="X-Operator-Role"),
+    ) -> JuryStatus:
+        require_operator(operator_role)
+        return jury.reset()
 
     def require_operator(role: str | None) -> str:
         resolved = role or ""
@@ -309,8 +368,19 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         response_model=FacilitySnapshot,
         tags=["facility"],
     )
-    async def facility_snapshot() -> FacilitySnapshot:
-        return facility.engine.snapshot()
+    def facility_snapshot() -> FacilitySnapshot:
+        snapshot = facility.engine.snapshot()
+        active_run = jury.status().active_run
+        if active_run is None:
+            return snapshot
+        projected_status = "threat-detected" if active_run.status == "running" else active_run.status
+        affected = set(active_run.affected_asset_ids)
+        return snapshot.model_copy(update={
+            "assets": [
+                asset.model_copy(update={"security_status": projected_status}) if asset.id in affected else asset
+                for asset in snapshot.assets
+            ]
+        })
 
     @application.post(
         "/api/v1/facility/assets/{asset_id}/commands",

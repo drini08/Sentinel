@@ -2,10 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FacilityApi, FacilitySnapshot } from "../facility/types";
 import { Facility } from "./Facility";
+import type { JuryApi } from "../jury/types";
 
 vi.mock("../facility/FacilityScene", () => ({
-  FacilityScene: ({ snapshot, onSelect }: { snapshot: FacilitySnapshot; onSelect(id: string): void }) => (
+  FacilityScene: ({ snapshot, onSelect, alertAssetId }: { snapshot: FacilitySnapshot; onSelect(id: string): void; alertAssetId?: string | null }) => (
     <div aria-label="3D facility">
+      {alertAssetId && <span data-testid="alerted-3d-asset">{alertAssetId}</span>}
       {snapshot.assets.map((asset) => (
         <button key={asset.id} type="button" onClick={() => onSelect(asset.id)}>Select {asset.name}</button>
       ))}
@@ -72,5 +74,31 @@ describe("Facility page", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Run compromised operator" }));
 
     expect(await screen.findByText("Attack contained. Legitimate operations continued.")).toBeInTheDocument();
+  });
+
+  it("shows a jury-triggered attack on the operator facility screen", async () => {
+    const juryApi: JuryApi = {
+      trigger: vi.fn(),
+      getStatus: vi.fn().mockResolvedValue({
+        active_run: {
+          run_id: "jury-7",
+          scenario: "command-injection",
+          status: "contained",
+          created_at: "2026-11-21T12:00:00Z",
+          affected_asset_ids: ["dosing-unit"],
+          risk_score: 100,
+          continuity_verified: true,
+          defense_actions: ["Unsafe mutation blocked"],
+          steps: [{ sequence: 1, event: "Attack received", outcome: "Injected dosing command" }],
+        },
+      }),
+    };
+
+    render(<Facility api={createApi()} juryApiClient={juryApi} />);
+
+    expect(await screen.findByText("Jury attack contained")).toBeInTheDocument();
+    expect(screen.getAllByText(/command injection/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Risk 100")).toBeInTheDocument();
+    expect(screen.getByTestId("alerted-3d-asset")).toHaveTextContent("dosing-unit");
   });
 });
