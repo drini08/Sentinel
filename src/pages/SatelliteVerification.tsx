@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, CloudSun, ScanSearch, Sparkles } from "lucide-react";
 import { PageHeader, Status } from "../components/UI";
 import { satelliteApi } from "../satellite/api";
-import { defaultPolygon, SatelliteMap } from "../satellite/SatelliteMap";
+import { SatelliteMap } from "../satellite/SatelliteMap";
 import type { Coordinate, SatelliteAnalysisResult, SatelliteApi, SatelliteStatus } from "../satellite/types";
 
 export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteApi }) {
-  const [polygon, setPolygon] = useState<Coordinate[]>(defaultPolygon);
+  const [polygon, setPolygon] = useState<Coordinate[]>([]);
   const [draftPolygon, setDraftPolygon] = useState<Coordinate[] | null>(null);
   const [status, setStatus] = useState<SatelliteStatus | null>(null);
   const [result, setResult] = useState<SatelliteAnalysisResult | null>(null);

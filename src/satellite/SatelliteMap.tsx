@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eraser, Pentagon, RotateCcw, Undo2, X } from "lucide-react";
+import { Check, Eraser, Pentagon, Undo2, X } from "lucide-react";
 import type { Coordinate } from "./types";
 import "leaflet/dist/leaflet.css";
-
-const defaultPolygon: Coordinate[] = [
-  [21.3007, 42.8145], [21.3204, 42.8072], [21.3418, 42.8168],
-  [21.3365, 42.8348], [21.3132, 42.8391], [21.2981, 42.8270],
-];
 
 export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Coordinate[]; onChange: (polygon: Coordinate[]) => void; onDraftChange?: (polygon: Coordinate[] | null) => void }) {
   const element = useRef<HTMLDivElement>(null);
@@ -38,8 +33,6 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
         setDraft([...current, [event.latlng.lng, event.latlng.lat]]);
       });
       mapRef.current = map;
-      const initial = L.polygon(defaultPolygon.map(([lng, lat]) => [lat, lng] as import("leaflet").LatLngTuple));
-      map.fitBounds(initial.getBounds(), { padding: [55, 55] });
     });
     return () => { active = false; mapRef.current?.remove(); mapRef.current = null; };
   }, []);
@@ -104,14 +97,13 @@ export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Co
         <button type="button" onClick={() => setDraft((current) => current?.slice(0, -1) ?? null)} disabled={points.length === 0}><Undo2 size={14} />Undo point</button>
         <button type="button" onClick={() => setDraft(null)}><X size={14} />Cancel</button>
       </>}
-      <button type="button" onClick={() => { setDraft(null); onChange(defaultPolygon); }}>{drawing ? <RotateCcw size={14} /> : <Eraser size={14} />}Reset area</button>
+      <button type="button" onClick={() => { setDraft(null); onChange([]); }}><Eraser size={14} />Clear area</button>
     </div>
     <div className="satellite-map-readout">
       {drawing
         ? points.length < 3 ? `${points.length} vertices · add ${3 - points.length} more` : `${points.length} vertices · finish or click point 1`
-        : `${points.length} vertices · drag points to adjust`}
+        : points.length ? `${points.length} vertices · drag points to adjust` : "No area selected · draw a polygon"}
     </div>
   </div>;
 }
 
-export { defaultPolygon };
