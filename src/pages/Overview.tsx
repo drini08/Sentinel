@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { DefenseNetwork } from "../components/Visuals";
 import { Eyebrow } from "../components/UI";
@@ -27,6 +28,18 @@ const capabilities = [
 ];
 
 export function Overview() {
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom) {
+        window.clearInterval(timer);
+        return;
+      }
+      window.scrollBy({ top: 1, behavior: "auto" });
+    }, 55);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const dashboard = usePolling<Dashboard | null>("/api/v1/dashboard", null);
   const incidentLabel = dashboard.data
     ? `${dashboard.data.active_incidents} active incident${dashboard.data.active_incidents === 1 ? "" : "s"}`
