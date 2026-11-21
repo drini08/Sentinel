@@ -23,7 +23,7 @@ class JuryService:
             if request.scenario == "compromised-operator":
                 run = self._compromised_operator(request.request_id)
             else:
-                run = self._synthetic_attack(request.scenario, request.request_id)
+                run = self._controlled_attack(request.scenario, request.request_id)
         except Exception:
             run = running.model_copy(update={
                 "status": "failed",
@@ -59,7 +59,7 @@ class JuryService:
             steps=result.steps,
         )
 
-    def _synthetic_attack(self, scenario: str, run_id: str) -> JuryRun:
+    def _controlled_attack(self, scenario: str, run_id: str) -> JuryRun:
         attack_id = uuid4().hex[:8]
         asset_id = "reservoir-b" if scenario == "sensor-spoofing" else "dosing-unit"
         label = "Forged reservoir telemetry" if scenario == "sensor-spoofing" else "Injected chemical dosing command"

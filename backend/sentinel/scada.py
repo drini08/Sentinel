@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .facility.models import FacilityAsset
 
 
-class SyntheticScadaSystem:
+class SimulatedScadaSystem:
     """Produces coherent, low-amplitude telemetry for the facility simulator."""
 
     reservoir_baselines = {

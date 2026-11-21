@@ -100,7 +100,7 @@ def test_failed_simulation_is_persisted_for_phone_recovery() -> None:
     client = TestClient(app)
 
     def fail() -> None:
-        raise RuntimeError("synthetic engine failure")
+        raise RuntimeError("simulation engine failure")
 
     app.state.jury.facility.run_compromised_operator = fail
     response = client.post(

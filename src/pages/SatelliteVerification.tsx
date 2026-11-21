@@ -78,7 +78,7 @@ export function SatelliteVerification({ api = satelliteApi, facilityApiClient = 
     const selectedPolygon = draftPolygon ?? polygon;
     if (selectedPolygon.length < 3) { setError("Draw at least three polygon points."); return; }
     if (Object.values(periods).some((period) => !period)) { setError("Select both imagery periods."); return; }
-    if (!scada) { setError("Synthetic SCADA telemetry is unavailable."); return; }
+    if (!scada) { setError("SCADA telemetry is unavailable."); return; }
     setPending(true); setError(null);
     try {
       const analysis = await api.analyze({
@@ -102,7 +102,7 @@ export function SatelliteVerification({ api = satelliteApi, facilityApiClient = 
           <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
         </div>
         <div className="satellite-scada-panel">
-          <div className="satellite-scada-head"><span>Synthetic SCADA feed</span><strong>{scada ? "Live" : "Connecting"}</strong></div>
+          <div className="satellite-scada-head"><span>SCADA telemetry</span><strong>{scada ? "Live" : "Connecting"}</strong></div>
           <div className="satellite-scada-grid">
             <div><span>Reservoir level</span><strong>{scada ? `${scada.level}%` : "—"}</strong></div>
             <div><span>Inflow</span><strong>{scada ? `${scada.inflow} m³/s` : "—"}</strong></div>

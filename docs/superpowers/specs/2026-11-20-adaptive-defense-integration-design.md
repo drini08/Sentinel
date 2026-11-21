@@ -80,7 +80,7 @@ The local demo uses fixed operator identity headers and a simulation ingestion t
 - Preserve unrelated legitimate sessions and traffic during containment.
 - Roll back a rule when the continuity probe fails.
 - Show failed requests and disconnected backend state visibly in the UI.
-- Keep all attack behavior synthetic and local.
+- Keep all attack behavior simulated and local.
 
 ## Testing and acceptance
 
@@ -99,5 +99,5 @@ Implementation is accepted when:
 - Production identity, secrets management, or external firewall integration.
 - Replacing SQLite with a production database.
 - Replacing the current visual design with the contributor branch's dark console.
-- Expanding the synthetic attack catalogue beyond the source branch in this integration.
+- Expanding the simulated attack catalogue beyond the source branch in this integration.
 

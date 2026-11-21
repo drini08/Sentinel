@@ -30,7 +30,7 @@ it("sends explicit simulation operator identity on mutations", async () => {
     target_type: "ip",
     target_value: "203.0.113.44",
     action: "block",
-    justification: "Confirmed synthetic source.",
+    justification: "Confirmed simulated source.",
     duration_seconds: 900,
   });
 

@@ -283,7 +283,7 @@ paths:
   /api/v1/jury/attacks:
     post:
       operationId: triggerJuryAttack
-      summary: Launch one allowlisted synthetic attack simulation.
+      summary: Launch one allowlisted controlled attack simulation.
       requestBody:
         required: true
         content:

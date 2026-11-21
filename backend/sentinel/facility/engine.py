@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .models import AssetCommand, FacilityAsset, FacilitySnapshot
 from .topology import build_facility_assets, build_facility_connections
-from ..scada import SyntheticScadaSystem
+from ..scada import SimulatedScadaSystem
 
 
 class FacilityAssetNotFound(KeyError):
@@ -22,7 +22,7 @@ class FacilityEngine:
         self._revision = 1
         self._assets = build_facility_assets()
         self._connections = build_facility_connections()
-        self._scada = SyntheticScadaSystem()
+        self._scada = SimulatedScadaSystem()
 
     def snapshot(self) -> FacilitySnapshot:
         self._scada.sample(self._assets)

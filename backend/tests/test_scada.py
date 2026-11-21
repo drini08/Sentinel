@@ -1,12 +1,12 @@
 from datetime import UTC, datetime, timedelta
 
 from sentinel.facility.topology import build_facility_assets
-from sentinel.scada import SyntheticScadaSystem
+from sentinel.scada import SimulatedScadaSystem
 
 
-def test_synthetic_scada_changes_readings_over_time() -> None:
+def test_scada_simulation_changes_readings_over_time() -> None:
     assets = build_facility_assets()
-    scada = SyntheticScadaSystem()
+    scada = SimulatedScadaSystem()
     first_sample = datetime(1970, 1, 1, tzinfo=UTC)
 
     scada.sample(assets, first_sample)
@@ -18,12 +18,12 @@ def test_synthetic_scada_changes_readings_over_time() -> None:
     assert assets["pump-station"].metrics["pressure_bar"] != first_pressure
 
 
-def test_synthetic_scada_respects_isolated_and_stopped_assets() -> None:
+def test_scada_simulation_respects_isolated_and_stopped_assets() -> None:
     assets = build_facility_assets()
     assets["reservoir-a"].status = "isolated"
     assets["pump-station"].status = "stopped"
 
-    SyntheticScadaSystem().sample(assets)
+    SimulatedScadaSystem().sample(assets)
 
     assert assets["reservoir-a"].metrics["outflow_m3s"] == 0.0
     assert assets["pump-station"].metrics["pressure_bar"] == 0.0
