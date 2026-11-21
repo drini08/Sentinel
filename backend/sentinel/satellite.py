@@ -163,19 +163,25 @@ class SatelliteService:
             "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
             "subject_token": subject_token,
         }).encode()
-        with urlopen(Request(
-            "https://sts.googleapis.com/v1/token", data=token_body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST",
-        ), timeout=15) as response:
-            federated = json.loads(response.read())
+        try:
+            with urlopen(Request(
+                "https://sts.googleapis.com/v1/token", data=token_body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST",
+            ), timeout=15) as response:
+                federated = json.loads(response.read())
+        except HTTPError as error:
+            raise SatelliteLiveError(f"Google STS exchange failed (HTTP {error.code})") from error
         access_body = json.dumps({"scope": ["https://www.googleapis.com/auth/cloud-platform"], "lifetime": "3600s"}).encode()
-        with urlopen(Request(
-            f"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{service_account}:generateAccessToken",
-            data=access_body,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {federated['access_token']}"},
-            method="POST",
-        ), timeout=15) as response:
-            access = json.loads(response.read())
+        try:
+            with urlopen(Request(
+                f"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{service_account}:generateAccessToken",
+                data=access_body,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {federated['access_token']}"},
+                method="POST",
+            ), timeout=15) as response:
+                access = json.loads(response.read())
+        except HTTPError as error:
+            raise SatelliteLiveError(f"Google service-account impersonation failed (HTTP {error.code})") from error
         return Credentials(token=access["accessToken"])
 
     def _explain(
