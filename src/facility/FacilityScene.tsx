@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import { FacilityAssetIndex } from "./FacilityAssetIndex";
 import { FacilityWorld } from "./FacilityWorld";
 import type { FacilitySnapshot } from "./types";
@@ -24,8 +23,7 @@ export function FacilityScene({
     <div className="facility-canvas" role="img" aria-label="Interactive 3D infrastructure view of Dardania Water Services">
       <FacilityAssetIndex assets={snapshot.assets} selectedId={selectedId} onSelect={onSelect} />
       <Canvas
-        dpr={[1, 1.5]}
-        shadows
+        dpr={[0.75, 1]}
         camera={{ position: [18, 15, 21], fov: 40, near: 0.1, far: 120 }}
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
         onPointerMissed={() => onSelect(null)}
@@ -40,10 +38,6 @@ export function FacilityScene({
             reducedMotion={reducedMotion}
             onSelect={onSelect}
           />
-          <EffectComposer multisampling={0}>
-            <Bloom intensity={0.55} luminanceThreshold={0.42} mipmapBlur />
-            <Vignette eskil={false} offset={0.18} darkness={0.72} />
-          </EffectComposer>
         </Suspense>
       </Canvas>
     </div>

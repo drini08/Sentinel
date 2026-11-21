@@ -35,7 +35,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
       }
     };
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 1500);
+    const timer = window.setInterval(() => void refresh(), 5000);
     return () => { active = false; window.clearInterval(timer); };
   }, [juryApiClient]);
 

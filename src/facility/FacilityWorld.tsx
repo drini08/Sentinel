@@ -35,12 +35,9 @@ export function FacilityWorld({ snapshot, selectedId, alertAssetId, reducedMotio
     <>
       <ambientLight intensity={0.7} color="#84c9cf" />
       <directionalLight
-        castShadow
         position={[9, 18, 10]}
         intensity={2.1}
         color="#d9ffff"
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
       />
       <pointLight position={[-9, 5, -4]} intensity={24} distance={18} color="#32d9df" />
       <pointLight position={[8, 5, 5]} intensity={18} distance={17} color="#1c7399" />
@@ -85,7 +82,7 @@ export function FacilityWorld({ snapshot, selectedId, alertAssetId, reducedMotio
         )}
       </group>
 
-      <ContactShadows position={[2, 0, 0]} opacity={0.48} scale={34} blur={2.6} far={18} />
+      <ContactShadows position={[2, 0, 0]} opacity={0.42} scale={34} blur={2.4} far={18} frames={1} resolution={256} />
       <CameraRig snapshot={snapshot} selectedId={selectedId} reducedMotion={reducedMotion} />
       <OrbitControls
         makeDefault

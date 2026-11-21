@@ -1,30 +1,30 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Shell } from "./components/Shell";
-import { Overview } from "./pages/Overview";
-import { Incidents } from "./pages/Incidents";
-import { Services } from "./pages/Services";
-import { Policies } from "./pages/Policies";
-import { Logs } from "./pages/Logs";
-import { Lab } from "./pages/Lab";
-import { Settings } from "./pages/Settings";
-import { Threats } from "./pages/Threats";
-import { Defense } from "./pages/Defense";
-import { AttackConsole } from "./pages/AttackConsole";
-import { SatelliteVerification } from "./pages/SatelliteVerification";
-import { VisualInspection } from "./pages/VisualInspection";
 import { SectionLayout } from "./components/SectionLayout";
 
+const Overview = lazy(() => import("./pages/Overview").then((module) => ({ default: module.Overview })));
+const Incidents = lazy(() => import("./pages/Incidents").then((module) => ({ default: module.Incidents })));
+const Services = lazy(() => import("./pages/Services").then((module) => ({ default: module.Services })));
+const Policies = lazy(() => import("./pages/Policies").then((module) => ({ default: module.Policies })));
+const Logs = lazy(() => import("./pages/Logs").then((module) => ({ default: module.Logs })));
+const Lab = lazy(() => import("./pages/Lab").then((module) => ({ default: module.Lab })));
+const Settings = lazy(() => import("./pages/Settings").then((module) => ({ default: module.Settings })));
+const Threats = lazy(() => import("./pages/Threats").then((module) => ({ default: module.Threats })));
+const Defense = lazy(() => import("./pages/Defense").then((module) => ({ default: module.Defense })));
+const AttackConsole = lazy(() => import("./pages/AttackConsole").then((module) => ({ default: module.AttackConsole })));
+const SatelliteVerification = lazy(() => import("./pages/SatelliteVerification").then((module) => ({ default: module.SatelliteVerification })));
+const VisualInspection = lazy(() => import("./pages/VisualInspection").then((module) => ({ default: module.VisualInspection })));
 const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
 
 export function App() {
   return (
-    <Routes>
+    <Suspense fallback={<div className="route-loading"><span />Loading SENTINEL…</div>}><Routes>
       <Route path="attack" element={<AttackConsole />} />
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
         <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Infrastructure View", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Visual Inspection", "/facility/inspection"], ["Services & Health", "/facility/services"]]} />}>
-          <Route index element={<Suspense fallback={<div className="facility-route-loading">Loading infrastructure view…</div>}><Facility /></Suspense>} />
+          <Route index element={<Facility />} />
           <Route path="satellite" element={<SatelliteVerification />} />
           <Route path="inspection" element={<VisualInspection />} />
           <Route path="services" element={<Services />} />
@@ -50,6 +50,6 @@ export function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
-    </Routes>
+    </Routes></Suspense>
   );
 }

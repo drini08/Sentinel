@@ -64,8 +64,8 @@ function SafetyBarriers() {
 }
 
 function SecurityPerimeter() {
-  const xPosts = [-17.5, -15, -12.5, -10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5];
-  const zPosts = [-11, -8.5, -6, -3.5, -1, 1.5, 4, 6.5, 9, 11];
+  const xPosts = [-17.5, -13, -8.5, -4, .5, 5, 9.5, 14, 17.5];
+  const zPosts = [-11, -7, -3, 0, 3, 7, 11];
   return <group position={[2, 0, 0]}>
     <mesh receiveShadow position={[0, .13, -11]}><boxGeometry args={[35.2, .26, .28]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>
     <mesh receiveShadow position={[0, .13, 11]}><boxGeometry args={[35.2, .26, .28]} /><meshStandardMaterial color="#101d20" roughness={.72} /></mesh>

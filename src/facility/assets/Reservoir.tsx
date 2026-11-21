@@ -53,7 +53,7 @@ export function Reservoir({ asset, selected, alert, onSelect }: AssetProps) {
         <cylinderGeometry args={[1.64, 1.64, 0.12, 48]} />
         <meshStandardMaterial color="#21383b" metalness={0.72} roughness={0.28} />
       </mesh>
-      <Html center position={[0, 2.3, 0]} distanceFactor={13} occlude>
+      <Html center position={[0, 2.3, 0]} distanceFactor={13}>
         <button type="button" className={`facility-label ${selected ? "facility-label-selected" : ""}`} onClick={() => onSelect(asset.id)}>
           <span>{asset.name}</span>
           <strong>{level.toFixed(0)}%</strong>

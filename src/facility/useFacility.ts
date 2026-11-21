@@ -15,7 +15,7 @@ type UseFacilityOptions = {
   pollMs?: number;
 };
 
-export function useFacility({ api = facilityApi, pollMs = 1000 }: UseFacilityOptions = {}) {
+export function useFacility({ api = facilityApi, pollMs = 4000 }: UseFacilityOptions = {}) {
   const [snapshot, setSnapshot] = useState<FacilitySnapshot | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);

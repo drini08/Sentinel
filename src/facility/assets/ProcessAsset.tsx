@@ -100,7 +100,7 @@ export function ProcessAsset({ asset, selected, alert, onSelect }: AssetProps) {
         <ringGeometry args={[1.45, 1.52, 48]} />
         <meshBasicMaterial color={accent} transparent opacity={selected || hovered || alert ? 0.95 : 0.25} />
       </mesh>
-      <Html center position={[0, asset.asset_type === "control" ? 2.4 : 2.0, 0]} distanceFactor={14} occlude>
+      <Html center position={[0, asset.asset_type === "control" ? 2.4 : 2.0, 0]} distanceFactor={14}>
         <button type="button" className={`facility-label ${selected ? "facility-label-selected" : ""}`} onClick={() => onSelect(asset.id)}>
           <span>{asset.name}</span>
           <strong>{asset.status.toUpperCase()}</strong>
