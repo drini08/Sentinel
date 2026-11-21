@@ -45,3 +45,20 @@ npm.cmd run build
 ## Implemented defense controls
 
 The service in `backend/` provides authenticated event ingestion, explainable hybrid scoring, incident correlation, server-side session revocation, enforced IP/endpoint gateway rules, expiration, manual overrides, post-enforcement health checks, automatic rollback, role-gated administration, policy thresholds, and append-only application audit history. It uses SQLite for the self-contained demo while keeping persistence behind `EvidenceStore`. See `backend/README.md` for API details.
+# Vercel deployment
+
+The repository deploys as one Vercel project with two services:
+
+- The Vite operator console at the project’s `.vercel.app` root.
+- FastAPI under the same origin at `/api/*`.
+- The public jury attack console at `/attack`.
+
+Import the GitHub repository into Vercel and add a managed PostgreSQL integration before the production deployment. The integration must expose `DATABASE_URL`; it stores jury simulation state so the phone and operator console share the same event across function instances.
+
+`VITE_PUBLIC_APP_URL` is optional. When omitted, the QR code uses the active deployment origin automatically. Set it to the final production `.vercel.app` URL if preview deployments should always display the production QR.
+
+Run the production topology locally with Vercel CLI 48.1.8 or newer:
+
+```powershell
+vercel dev -L
+```

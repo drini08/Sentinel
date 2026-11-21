@@ -6,10 +6,14 @@ import { FacilityStatus } from "../facility/FacilityStatus";
 import { useFacility } from "../facility/useFacility";
 import type { FacilityApi } from "../facility/types";
 import { PageHeader } from "../components/UI";
+import { JuryAccess } from "../jury/JuryAccess";
+import { juryApi } from "../jury/api";
+import type { JuryApi, JuryRun } from "../jury/types";
 
-export function Facility({ api }: { api?: FacilityApi }) {
+export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; juryApiClient?: JuryApi }) {
   const facility = useFacility({ api });
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [juryRun, setJuryRun] = useState<JuryRun | null>(null);
 
   useEffect(() => {
     const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -20,7 +24,24 @@ export function Facility({ api }: { api?: FacilityApi }) {
     return () => media.removeEventListener?.("change", update);
   }, []);
 
-  const alertAssetId = facility.lastCommand && !facility.lastCommand.applied ? facility.lastCommand.asset.id : null;
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const status = await juryApiClient.getStatus();
+        if (active) setJuryRun(status.active_run);
+      } catch {
+        // The facility retains its last confirmed visual state while reconnecting.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 1500);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [juryApiClient]);
+
+  const alertAssetId = facility.lastCommand && !facility.lastCommand.applied
+    ? facility.lastCommand.asset.id
+    : juryRun?.affected_asset_ids[0] ?? null;
 
   return (
     <div className="animate-enter facility-page">
@@ -72,6 +93,15 @@ export function Facility({ api }: { api?: FacilityApi }) {
             </div>
           </div>
         )}
+
+        {juryRun && (
+          <div className="facility-jury-alert" role="status">
+            <div><ShieldAlert size={17} /><span>External jury event</span></div>
+            <strong>Jury attack contained</strong>
+            <p>{juryRun.scenario.replaceAll("-", " ")} · {juryRun.affected_asset_ids.map((id) => id.replaceAll("-", " ")).join(", ")}</p>
+            <b>Risk {juryRun.risk_score}</b>
+          </div>
+        )}
       </section>
 
       {facility.scenario?.continuity_verified && (
@@ -80,6 +110,7 @@ export function Facility({ api }: { api?: FacilityApi }) {
           <div><strong>Attack contained. Legitimate operations continued.</strong><span>Critical command blocked with risk {facility.scenario.attack.decision.assessment?.risk_score ?? 94}; independent operator access remained available.</span></div>
         </div>
       )}
+      <JuryAccess api={juryApiClient} />
     </div>
   );
 }

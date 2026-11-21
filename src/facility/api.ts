@@ -5,8 +5,9 @@ import type {
   FacilityScenarioResult,
   FacilitySnapshot,
 } from "./types";
+import { resolveApiBase } from "../apiBase";
 
-const apiBase = (import.meta.env.VITE_SENTINEL_API_URL as string | undefined) ?? "http://127.0.0.1:8000";
+const apiBase = resolveApiBase(import.meta.env.VITE_SENTINEL_API_URL as string | undefined, import.meta.env.PROD);
 const operatorHeaders = { "X-Operator-Role": "operator", "X-Operator-Id": "console-operator" };
 
 type RequestOptions = Omit<RequestInit, "body"> & { body?: unknown };

@@ -10,12 +10,14 @@ import { Lab } from "./pages/Lab";
 import { Settings } from "./pages/Settings";
 import { Threats } from "./pages/Threats";
 import { Defense } from "./pages/Defense";
+import { AttackConsole } from "./pages/AttackConsole";
 
 const Facility = lazy(() => import("./pages/Facility").then((module) => ({ default: module.Facility })));
 
 export function App() {
   return (
     <Routes>
+      <Route path="attack" element={<AttackConsole />} />
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
         <Route path="threats" element={<Threats />} />

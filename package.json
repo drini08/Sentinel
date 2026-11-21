@@ -17,6 +17,7 @@
     "postprocessing": "^6.39.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-qr-code": "^2.2.0",
     "react-router-dom": "7.18.5",
     "three": "^0.187.0"
   },
