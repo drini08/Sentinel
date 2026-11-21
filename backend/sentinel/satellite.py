@@ -102,10 +102,16 @@ class SatelliteService:
                 service_account_info,
                 scopes=["https://www.googleapis.com/auth/earthengine", "https://www.googleapis.com/auth/cloud-platform"],
             )
-            ee.Initialize(credentials=credentials, project=self.project)
+            try:
+                ee.Initialize(credentials=credentials, project=self.project)
+            except Exception as error:
+                raise SatelliteLiveError(f"Earth Engine initialization failed ({type(error).__name__})") from error
         elif vercel_oidc_token or os.getenv("VERCEL_OIDC_TOKEN"):
             credentials = self._vercel_federated_credentials(vercel_oidc_token or os.environ["VERCEL_OIDC_TOKEN"])
-            ee.Initialize(credentials=credentials, project=self.project)
+            try:
+                ee.Initialize(credentials=credentials, project=self.project)
+            except Exception as error:
+                raise SatelliteLiveError(f"Earth Engine initialization failed ({type(error).__name__})") from error
         else:
             # Local development keeps supporting GOOGLE_APPLICATION_CREDENTIALS,
             # Earth Engine's persisted OAuth credentials, and ADC.
