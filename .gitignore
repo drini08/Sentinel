@@ -31,3 +31,6 @@ Thumbs.db
 .superpowers/
 .artifacts/
 .worktrees/
+.vercel
+.env*
+!.env.example
