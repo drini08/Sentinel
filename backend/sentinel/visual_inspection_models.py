@@ -32,8 +32,8 @@ class VisualInspectionResult(StrictModel):
     asset_type: str
     condition: Literal["good", "attention", "critical", "unknown"]
     summary: str
-    findings: list[str] = Field(max_length=4)
-    risks: list[str] = Field(max_length=3)
+    findings: list[str] = Field(max_length=3)
+    risks: list[str] = Field(max_length=2)
     recommendations: list[str] = Field(max_length=3)
     confidence: float = Field(ge=0, le=1)
     model: str

@@ -36,8 +36,8 @@ class VisualInspectionService:
                 "asset_type": {"type": "string"},
                 "condition": {"type": "string", "enum": ["good", "attention", "critical", "unknown"]},
                 "summary": {"type": "string"},
-                "findings": {"type": "array", "items": {"type": "string"}, "maxItems": 4},
-                "risks": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+                "findings": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+                "risks": {"type": "array", "items": {"type": "string"}, "maxItems": 2},
                 "recommendations": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
                 "confidence": {"type": "number", "minimum": 0, "maximum": 1},
             },
@@ -47,8 +47,10 @@ class VisualInspectionService:
             "Act as a visual inspection assistant for water and critical infrastructure. Analyze only what is visibly "
             "supported by this image. Identify the likely asset, visible condition, notable findings and plausible safety "
             "or maintenance risks. Do not claim hidden defects, cyber compromise, engineering certification, or certainty. "
-            "Use 'unknown' when the image is insufficient. Keep the summary under 28 words and every list item under "
-            "14 words. Recommendations must be low-risk verification or qualified-inspection actions. "
+            "Use 'unknown' when the image is insufficient. Keep the summary under 14 words. Return no more than "
+            "3 findings, 2 risks, and 3 recommendations. Every bullet must be 7 words or fewer. Recommendations "
+            "must be low-risk verification or qualified-inspection actions. Never instruct the operator to isolate, "
+            "shut down, start, open, or close equipment; recommend escalation under approved procedures instead. "
             f"Operator context: {request.context.strip() or 'No additional context provided.'}"
         )
         body = json.dumps({
@@ -78,6 +80,10 @@ class VisualInspectionService:
             if text.startswith("```"):
                 text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
             result = json.loads(text)
+            result["summary"] = self._shorten(result.get("summary", "Visible condition requires review"), 14)
+            result["findings"] = [self._shorten(item, 7) for item in result.get("findings", [])[:3]]
+            result["risks"] = [self._shorten(item, 7) for item in result.get("risks", [])[:2]]
+            result["recommendations"] = [self._shorten(item, 7) for item in result.get("recommendations", [])[:3]]
             digest = sha256((request.filename + request.image_base64[:512]).encode()).hexdigest()[:12]
             return VisualInspectionResult(
                 inspection_id=f"vis_{digest}",
@@ -90,4 +96,9 @@ class VisualInspectionService:
             raise VisualInspectionUnavailable("Gemini inspection service is unavailable") from error
         except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise VisualInspectionUnavailable("Gemini returned an invalid inspection result") from error
+
+    @staticmethod
+    def _shorten(value: object, limit: int) -> str:
+        words = str(value).strip().split()
+        return " ".join(words[:limit]).rstrip(".,;:")
 
