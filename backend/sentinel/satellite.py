@@ -135,19 +135,30 @@ class SatelliteService:
             ).get("area", 0)
             return float(ee.Number(area).getInfo() or 0) / 1_000_000
 
-        baseline_image = composite(request.baseline_start.isoformat(), request.baseline_end.isoformat())
-        current_image = composite(request.current_start.isoformat(), request.current_end.isoformat())
-        baseline = water_area(baseline_image)
-        current = water_area(current_image)
+        try:
+            baseline_image = composite(request.baseline_start.isoformat(), request.baseline_end.isoformat())
+            current_image = composite(request.current_start.isoformat(), request.current_end.isoformat())
+        except Exception as error:
+            raise SatelliteLiveError("Earth Engine composite failed") from error
+        try:
+            baseline = water_area(baseline_image)
+            current = water_area(current_image)
+        except Exception as error:
+            raise SatelliteLiveError("Earth Engine water-mask reduction failed") from error
         if baseline <= 0:
             raise ValueError("No water pixels were available in the baseline range")
         visualization = {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000, "dimensions": 900, "region": geometry}
+        try:
+            baseline_image_url = baseline_image.getThumbURL(visualization)
+            current_image_url = current_image.getThumbURL(visualization)
+        except Exception as error:
+            raise SatelliteLiveError("Earth Engine thumbnail generation failed") from error
         return {
             "baseline_water_km2": round(baseline, 2),
             "current_water_km2": round(current, 2),
             "change_percent": round((current - baseline) / baseline * 100, 1),
-            "baseline_image_url": baseline_image.getThumbURL(visualization),
-            "current_image_url": current_image.getThumbURL(visualization),
+            "baseline_image_url": baseline_image_url,
+            "current_image_url": current_image_url,
         }
 
     def _vercel_federated_credentials(self, subject_token: str):
