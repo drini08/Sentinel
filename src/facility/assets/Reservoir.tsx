@@ -53,12 +53,12 @@ export function Reservoir({ asset, selected, alert, onSelect }: AssetProps) {
         <cylinderGeometry args={[1.64, 1.64, 0.12, 48]} />
         <meshStandardMaterial color="#3c5b61" metalness={0.66} roughness={0.32} />
       </mesh>
-      <Html center position={[0, 2.3, 0]} distanceFactor={13}>
+      {(selected || hovered || alert) && <Html center position={[0, 2.3, 0]} distanceFactor={13} wrapperClass="facility-label-layer">
         <button type="button" className={`facility-label ${selected ? "facility-label-selected" : ""}`} onClick={() => onSelect(asset.id)}>
           <span>{asset.name}</span>
           <strong>{level.toFixed(0)}%</strong>
         </button>
-      </Html>
+      </Html>}
     </group>
   );
 }
