@@ -30,7 +30,7 @@ describe("AttackConsole", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /sensor spoofing/i }));
 
-    await waitFor(() => expect(screen.getByText("Attack contained")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Attack protected")).toBeInTheDocument());
     expect(screen.getByText("Risk 100")).toBeInTheDocument();
     expect(screen.getByText("Reservoir B protected")).toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe("AttackConsole", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /command injection/i }));
 
-    await waitFor(() => expect(screen.getByText("Attack contained")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Attack protected")).toBeInTheDocument());
     expect(api.getRun).toHaveBeenCalledWith(expect.stringMatching(/^jury-/));
   });
 });

@@ -102,7 +102,7 @@ describe("Facility page", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Run compromised operator" }));
 
-    expect(await screen.findByText("Attack contained. Legitimate operations continued.")).toBeInTheDocument();
+    expect(await screen.findByText("Attack protected. Legitimate operations continued.")).toBeInTheDocument();
   });
 
   it("clears an active jury alert when the operator resets the facility", async () => {
@@ -140,7 +140,7 @@ describe("Facility page", () => {
 
     render(<Facility api={createApi()} juryApiClient={juryApi} />);
 
-    expect(await screen.findByText("Jury attack contained")).toBeInTheDocument();
+    expect(await screen.findByText("Jury attack protected")).toBeInTheDocument();
     expect(screen.getAllByText(/command injection/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Risk 100")).toBeInTheDocument();
     expect(await screen.findByTestId("alerted-3d-asset")).toHaveTextContent("dosing-unit");

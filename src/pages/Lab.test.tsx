@@ -20,6 +20,6 @@ it("runs the shared backend scenario instead of a local timer", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Run scenario" }));
 
   await waitFor(() => expect(runScenario).toHaveBeenCalledOnce());
-  expect(await screen.findByText("Selective containment")).toBeInTheDocument();
-  expect(screen.getByText("Attack contained. Service remained available.")).toBeInTheDocument();
+  expect(await screen.findByText("Selective protection")).toBeInTheDocument();
+  expect(screen.getByText("Attack protected. Service remained available.")).toBeInTheDocument();
 });

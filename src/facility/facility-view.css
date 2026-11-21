@@ -81,8 +81,21 @@
   text-transform: capitalize;
 }
 
+.facility-asset-list button.facility-asset-is-attacked {
+  border-color: #ff6675;
+  background: linear-gradient(135deg, #4c1720, #2b1118);
+  box-shadow: inset 0 0 0 1px rgb(255 102 117 / 0.24), 0 0 22px rgb(255 79 99 / 0.2);
+}
+
+.facility-asset-list button.facility-asset-is-attacked:hover,
+.facility-asset-list button.facility-asset-is-attacked[aria-pressed="true"] {
+  border-color: #ff99a3;
+  background: linear-gradient(135deg, #67202b, #35131b);
+}
+
 .facility-asset-list .facility-asset-alert {
-  color: #ffc7cc;
+  color: #ffd3d7;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {

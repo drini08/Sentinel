@@ -59,8 +59,8 @@ export function Policies() {
               </div>
             ))}
             <div className="flex items-center justify-between gap-6 p-6 lg:p-7">
-              <div><div className="text-sm font-medium text-primary">Automatic scoped containment</div><p className="mt-1.5 text-xs leading-5 text-muted">Permit corroborated session and source restrictions for critical activity.</p></div>
-              <button disabled={busy} aria-label="Automatic scoped containment" className={`toggle ${policy.automatic_containment ? "toggle-on" : ""}`} role="switch" aria-checked={policy.automatic_containment} onClick={() => void update({ automatic_containment: !policy.automatic_containment })}><span /></button>
+              <div><div className="text-sm font-medium text-primary">Automatic scoped protection</div><p className="mt-1.5 text-xs leading-5 text-muted">Permit corroborated session and source restrictions for critical activity.</p></div>
+              <button disabled={busy} aria-label="Automatic scoped protection" className={`toggle ${policy.automatic_containment ? "toggle-on" : ""}`} role="switch" aria-checked={policy.automatic_containment} onClick={() => void update({ automatic_containment: !policy.automatic_containment })}><span /></button>
             </div>
             <div className="flex items-center justify-between gap-6 p-6 lg:p-7">
               <div><div className="text-sm font-medium text-primary">Require corroborating evidence</div><p className="mt-1.5 text-xs leading-5 text-muted">A score alone cannot authorize a high-impact defensive action.</p></div>

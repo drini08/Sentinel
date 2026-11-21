@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Activity, ArrowLeft, Check, RadioTower, ShieldCheck, TerminalSquare, UserRoundCog, Waves } from "lucide-react";
 import { Mark } from "../components/Brand";
+import { protectionLanguage } from "../components/protectionLanguage";
 import { Link } from "react-router-dom";
 import { juryApi } from "../jury/api";
 import type { JuryApi, JuryRun, JuryScenario } from "../jury/types";
@@ -91,7 +92,7 @@ export function AttackConsole({ api = juryApi }: { api?: JuryApi }) {
           <p className="attack-kicker">Jury attack terminal</p>
           <h1>Choose where<br />to strike.</h1>
         </div>
-        <p>Launch a controlled attack against the live water facility. Watch the defense detect, contain, and preserve operations in real time.</p>
+        <p>Launch a controlled attack against the live water facility. Watch the defense detect, protect, and preserve operations in real time.</p>
       </section>
 
       <section className="attack-grid" aria-label="Available attack simulations">
@@ -124,7 +125,7 @@ export function AttackConsole({ api = juryApi }: { api?: JuryApi }) {
         <section className={`attack-result ${run.status === "contained" ? "is-contained" : "is-failed"}`} aria-live="polite">
           <div className="attack-result-head">
             <div className="attack-result-icon"><ShieldCheck size={25} /></div>
-            <div><span>Sentinel response</span><h2>{run.status === "contained" ? "Attack contained" : "Defense failed"}</h2></div>
+            <div><span>Sentinel response</span><h2>{run.status === "contained" ? "Attack protected" : "Defense failed"}</h2></div>
             <strong>Risk {run.risk_score}</strong>
           </div>
           <div className="attack-result-body">
@@ -132,7 +133,7 @@ export function AttackConsole({ api = juryApi }: { api?: JuryApi }) {
               {run.steps.map((step) => (
                 <div key={step.sequence} className="attack-step">
                   <span>{String(step.sequence).padStart(2, "0")}</span>
-                  <div><strong>{step.event}</strong><p>{step.outcome}</p></div>
+                  <div><strong>{protectionLanguage(step.event)}</strong><p>{protectionLanguage(step.outcome)}</p></div>
                 </div>
               ))}
             </div>

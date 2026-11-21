@@ -49,7 +49,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
       <PageHeader
         eyebrow="Dardania Water Services"
         title="Infrastructure View"
-        description="Live SCADA operations, protected commands, and explainable containment across the complete treatment and distribution facility."
+        description="Live SCADA operations, protected commands, and explainable protection across the complete treatment and distribution facility."
         action={
           <div className="flex flex-wrap gap-3">
             <button type="button" className="button-secondary" disabled={facility.commandPending} onClick={() => void resetFacility()}>
@@ -108,7 +108,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
         {juryRun && (
           <div className="facility-jury-alert" role="status">
             <div><ShieldAlert size={17} /><span>External jury event</span></div>
-            <strong>Jury attack contained</strong>
+            <strong>Jury attack protected</strong>
             <p>{juryRun.scenario.replaceAll("-", " ")} · {juryRun.affected_asset_ids.map((id) => id.replaceAll("-", " ")).join(", ")}</p>
             <b>Risk {juryRun.risk_score}</b>
           </div>
@@ -118,7 +118,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
       {facility.scenario?.continuity_verified && (
         <div className="facility-continuity" role="status">
           <ShieldAlert size={18} />
-          <div><strong>Attack contained. Legitimate operations continued.</strong><span>Critical command blocked with risk {facility.scenario.attack.decision.assessment?.risk_score ?? 94}; independent operator access remained available.</span></div>
+          <div><strong>Attack protected. Legitimate operations continued.</strong><span>Critical command blocked with risk {facility.scenario.attack.decision.assessment?.risk_score ?? 94}; independent operator access remained available.</span></div>
         </div>
       )}
       <JuryAccess api={juryApiClient} onRunChange={setJuryRun} />

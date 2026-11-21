@@ -3,7 +3,7 @@ export type Incident = {
   title: string;
   service: string;
   severity: "Critical" | "High" | "Medium";
-  status: "Contained" | "Investigating" | "Resolved";
+  status: "Protected" | "Investigating" | "Resolved";
   time: string;
   score: number;
   source: string;
@@ -16,7 +16,7 @@ export const incidents: Incident[] = [
     title: "Unauthorized administrative access",
     service: "Dardania Water API",
     severity: "Critical",
-    status: "Contained",
+    status: "Protected",
     time: "2 min ago",
     score: 94,
     source: "Session 8F2A-19C7",
@@ -61,7 +61,7 @@ export const policies = [
 ];
 
 export const activity = [
-  { time: "10:24:18", event: "Session contained", actor: "SENTINEL", service: "Dardania Water API", result: "Enforced" },
+  { time: "10:24:18", event: "Session protected", actor: "SENTINEL", service: "Dardania Water API", result: "Enforced" },
   { time: "10:24:16", event: "Suspicious request blocked", actor: "Gateway", service: "Dardania Water API", result: "Blocked" },
   { time: "10:24:11", event: "Risk threshold exceeded", actor: "Detection engine", service: "Dardania Water API", result: "Score 94" },
   { time: "10:23:57", event: "Administrative route requested", actor: "Session 8F2A-19C7", service: "Dardania Water API", result: "Observed" },

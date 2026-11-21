@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Play, RotateCcw, ShieldBan } from "lucide-react";
 import { Eyebrow, PageHeader } from "../components/UI";
+import { protectionLanguage } from "../components/protectionLanguage";
 import { facilityApi } from "../facility/api";
 import type { FacilityApi, SimulationStep } from "../facility/types";
 
@@ -8,7 +9,7 @@ const previewSteps: SimulationStep[] = [
   { sequence: 1, event: "Behavioral baseline", outcome: "Four legitimate telemetry reads" },
   { sequence: 2, event: "Compromised operator", outcome: "Administrative pump command from a new context" },
   { sequence: 3, event: "Explainable risk assessment", outcome: "Deterministic risk signals" },
-  { sequence: 4, event: "Selective containment", outcome: "Suspicious session restricted" },
+  { sequence: 4, event: "Selective protection", outcome: "Suspicious session restricted" },
   { sequence: 5, event: "Continuity verification", outcome: "Independent legitimate operation" },
 ];
 
@@ -44,7 +45,7 @@ export function Lab({ api = facilityApi }: { api?: Pick<FacilityApi, "runScenari
 
   return (
     <div className="animate-enter">
-      <PageHeader eyebrow="Controlled environment" title="Simulation Lab" description="Run a reproducible attack scenario and observe detection, containment, and continuity in sequence." />
+      <PageHeader eyebrow="Controlled environment" title="Simulation Lab" description="Run a reproducible attack scenario and observe detection, protection, and continuity in sequence." />
       <div className="grid gap-5 lg:grid-cols-[.72fr_1.4fr]">
         <aside className="panel h-fit p-6 lg:p-7">
           <Eyebrow>Scenario 01</Eyebrow>
@@ -61,10 +62,11 @@ export function Lab({ api = facilityApi }: { api?: Pick<FacilityApi, "runScenari
             {steps.map((step, index) => {
               const complete = index < progress;
               const active = index === progress && running;
-              return <div key={step.sequence} className={`lab-step ${complete ? "lab-step-complete" : ""} ${active ? "lab-step-active" : ""}`}><span className="lab-node">{complete ? <Check size={12} strokeWidth={3} /> : index + 1}</span><div><div className="text-sm text-primary">{step.event}</div><div className="mt-1 font-mono text-[10px] text-muted">{complete ? step.outcome : "—"}</div></div>{step.event === "Selective containment" && complete && <ShieldBan className="ml-auto text-white" size={17} />}</div>;
+              const event = protectionLanguage(step.event);
+              return <div key={step.sequence} className={`lab-step ${complete ? "lab-step-complete" : ""} ${active ? "lab-step-active" : ""}`}><span className="lab-node">{complete ? <Check size={12} strokeWidth={3} /> : index + 1}</span><div><div className="text-sm text-primary">{event}</div><div className="mt-1 font-mono text-[10px] text-muted">{complete ? protectionLanguage(step.outcome) : "—"}</div></div>{event === "Selective protection" && complete && <ShieldBan className="ml-auto text-white" size={17} />}</div>;
             })}
           </div>
-          {continuityVerified && <div className="mt-7 rounded-lg border border-white/[0.12] bg-white/[0.04] p-5"><div className="flex items-center gap-3 text-sm text-white"><Check className="rounded-full bg-white p-1 text-black" size={21} strokeWidth={3} />Attack contained. Service remained available.</div><p className="ml-8 mt-2 text-xs text-muted">Only the compromised session was restricted; a legitimate facility command succeeded immediately afterward.</p></div>}
+          {continuityVerified && <div className="mt-7 rounded-lg border border-white/[0.12] bg-white/[0.04] p-5"><div className="flex items-center gap-3 text-sm text-white"><Check className="rounded-full bg-white p-1 text-black" size={21} strokeWidth={3} />Attack protected. Service remained available.</div><p className="ml-8 mt-2 text-xs text-muted">Only the compromised session was restricted; a legitimate facility command succeeded immediately afterward.</p></div>}
         </section>
       </div>
     </div>

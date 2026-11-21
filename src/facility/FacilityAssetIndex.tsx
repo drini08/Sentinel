@@ -23,6 +23,7 @@ export function FacilityAssetIndex({
         <button
           type="button"
           key={asset.id}
+          className={asset.id === alertAssetId ? "facility-asset-is-attacked" : undefined}
           aria-label={`Select ${asset.name}`}
           aria-pressed={selectedId === asset.id}
           onClick={() => onSelect(asset.id)}
@@ -30,7 +31,7 @@ export function FacilityAssetIndex({
           <span>{asset.name}</span>
           {visible && (
             <small className={asset.id === alertAssetId ? "facility-asset-alert" : undefined}>
-              {asset.id === alertAssetId ? "Security alert" : asset.status}
+              {asset.id === alertAssetId ? "Under attack · protected" : asset.status}
             </small>
           )}
         </button>
