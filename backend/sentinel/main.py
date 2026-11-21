@@ -35,6 +35,23 @@ from .simulation import run_compromised_session_scenario
 from .store import EvidenceStore
 
 
+def cors_origins() -> list[str]:
+    defaults = [
+        "http://127.0.0.1:4173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://127.0.0.1:5174",
+        "http://localhost:5174",
+    ]
+    configured = [
+        origin.strip().rstrip("/")
+        for origin in os.getenv("SENTINEL_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys([*defaults, *configured]))
+
+
 def create_app(database_path: str | Path | None = None) -> FastAPI:
     resolved_path = database_path or os.getenv("SENTINEL_DATABASE_PATH", "sentinel.db")
     store = EvidenceStore(resolved_path)
@@ -48,14 +65,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:4173",
-            "http://localhost:4173",
-            "http://127.0.0.1:5173",
-            "http://localhost:5173",
-            "http://127.0.0.1:5174",
-            "http://localhost:5174",
-        ],
+        allow_origins=cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
