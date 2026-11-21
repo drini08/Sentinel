@@ -66,11 +66,15 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .nav-link {
   display: inline-flex;
   align-items: center;
-  height: 38px;
-  padding: 0 17px;
-  border-radius: 8px;
+  height: 48px;
+  padding: 0 25px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   color: #c3c6cb;
-  font-size: 16px;
+  font-family: "Segoe UI Mono", "Roboto Mono", Consolas, monospace;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: .01em;
   transition: color 150ms ease, background 150ms ease;
   white-space: nowrap;
 }

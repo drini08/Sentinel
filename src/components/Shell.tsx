@@ -5,7 +5,7 @@ import { Brand } from "./Brand";
 const navigation = [
   ["Overview", "/"],
   ["Facility", "/facility"],
-  ["Security", "/security/threats"],
+  ["Security", "/security"],
   ["Demo", "/demo"],
 ];
 
@@ -15,12 +15,12 @@ export function Shell() {
       <header className="sticky top-0 z-50 border-b border-white/[0.055] bg-[#080c12]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-[1480px] items-center gap-8 px-5 lg:px-8">
           <NavLink to="/" aria-label="SENTINEL overview" className="shrink-0"><Brand /></NavLink>
-          <nav aria-label="Primary navigation" className="no-scrollbar mx-auto flex min-w-0 items-center gap-1 overflow-x-auto">
+          <nav aria-label="Primary navigation" className="no-scrollbar mx-auto flex min-w-0 items-center gap-3 overflow-x-auto">
             {navigation.map(([label, to]) => (
               <NavLink
                 key={to}
                 to={to}
-                end={to === "/" || to === "/facility" || to === "/demo"}
+                end={to === "/"}
                 className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}
               >
                 {label}

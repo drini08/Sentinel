@@ -17,6 +17,20 @@ it("applies the compact application scale to every route", () => {
   expect(container.firstElementChild).toHaveClass("app-scale");
   expect(container.firstElementChild).toHaveClass("theme-hybrid");
   expect(screen.getByRole("link", { name: "Facility" })).toHaveAttribute("href", "/facility");
-  expect(screen.getByRole("link", { name: "Security" })).toHaveAttribute("href", "/security/threats");
+  expect(screen.getByRole("link", { name: "Security" })).toHaveAttribute("href", "/security");
   expect(screen.getByRole("link", { name: "Demo" })).toHaveAttribute("href", "/demo");
+});
+
+it("keeps Facility selected on nested facility pages", () => {
+  render(
+    <MemoryRouter initialEntries={["/facility/inspection"]}>
+      <Routes>
+        <Route element={<Shell />}>
+          <Route path="facility/inspection" element={<div>Inspection</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByRole("link", { name: "Facility" })).toHaveClass("nav-link-active");
 });
