@@ -55,6 +55,8 @@ The repository deploys as one Vercel project with two services:
 
 Import the GitHub repository into Vercel and add a managed PostgreSQL integration before the production deployment. The integration must expose `DATABASE_URL`; it stores jury simulation state so the phone and operator console share the same event across function instances.
 
+Copy `.env.example` to `.env.local` for local overrides. In Vercel, configure `DATABASE_URL` for Production and Preview. Keep `VITE_SENTINEL_API_URL` empty when the frontend and API use this repository's same-origin rewrites. Add `SENTINEL_CORS_ORIGINS` only for a separate frontend origin or LAN preview.
+
 `VITE_PUBLIC_APP_URL` is optional. When omitted, the QR code uses the active deployment origin automatically. Set it to the final production `.vercel.app` URL if preview deployments should always display the production QR.
 
 Run the production topology locally with Vercel CLI 48.1.8 or newer:
