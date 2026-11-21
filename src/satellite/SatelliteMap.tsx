@@ -8,7 +8,7 @@ const defaultPolygon: Coordinate[] = [
   [21.3365, 42.8348], [21.3132, 42.8391], [21.2981, 42.8270],
 ];
 
-export function SatelliteMap({ polygon, onChange }: { polygon: Coordinate[]; onChange: (polygon: Coordinate[]) => void }) {
+export function SatelliteMap({ polygon, onChange, onDraftChange }: { polygon: Coordinate[]; onChange: (polygon: Coordinate[]) => void; onDraftChange?: (polygon: Coordinate[] | null) => void }) {
   const element = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const shapeRef = useRef<import("leaflet").Polyline | import("leaflet").Polygon | null>(null);
@@ -21,6 +21,7 @@ export function SatelliteMap({ polygon, onChange }: { polygon: Coordinate[]; onC
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
   useEffect(() => { draftRef.current = draft; }, [draft]);
+  useEffect(() => { onDraftChange?.(draft); }, [draft, onDraftChange]);
 
   useEffect(() => {
     if (!element.current || mapRef.current) return;

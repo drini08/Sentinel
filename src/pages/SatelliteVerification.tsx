@@ -7,11 +7,13 @@ import type { Coordinate, SatelliteAnalysisResult, SatelliteApi, SatelliteStatus
 
 export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteApi }) {
   const [polygon, setPolygon] = useState<Coordinate[]>(defaultPolygon);
+  const [draftPolygon, setDraftPolygon] = useState<Coordinate[] | null>(null);
   const [status, setStatus] = useState<SatelliteStatus | null>(null);
   const [result, setResult] = useState<SatelliteAnalysisResult | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scadaLevel, setScadaLevel] = useState(82);
+  const [analyzedVertices, setAnalyzedVertices] = useState(0);
   const [periods, setPeriods] = useState({
     baseline_start: "2025-06-01", baseline_end: "2025-08-31",
     current_start: "2026-06-01", current_end: "2026-08-31",
@@ -19,15 +21,18 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
   useEffect(() => { void api.getStatus().then(setStatus).catch(() => setStatus(null)); }, [api]);
 
   const analyze = async () => {
-    if (polygon.length < 3) { setError("Draw at least three polygon points."); return; }
+    const selectedPolygon = draftPolygon ?? polygon;
+    if (selectedPolygon.length < 3) { setError("Draw at least three polygon points."); return; }
     setPending(true); setError(null);
     try {
-      setResult(await api.analyze({
+      const analysis = await api.analyze({
         name: "Batlava source reservoir",
-        polygon,
+        polygon: selectedPolygon,
         ...periods,
         scada_level_percent: scadaLevel,
-      }));
+      });
+      setResult(analysis);
+      setAnalyzedVertices(selectedPolygon.length);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Satellite analysis failed"); }
     finally { setPending(false); }
   };
@@ -36,7 +41,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
     <PageHeader eyebrow="Physical ground truth" title="Satellite Verification" description="Draw an operational boundary, measure visible water change with Earth Engine, and compare independent evidence with SCADA telemetry." action={<Status tone={status?.mode === "live" ? "light" : "neutral"}>{status?.mode === "live" ? "Earth Engine live" : "Demo imagery mode"}</Status>} />
     <div className="satellite-layout">
       <section className="panel satellite-workspace">
-        <SatelliteMap polygon={polygon} onChange={setPolygon} />
+        <SatelliteMap polygon={polygon} onChange={setPolygon} onDraftChange={setDraftPolygon} />
         <div className="satellite-periods">
           <fieldset><legend>Baseline imagery period</legend><label>From<input type="date" value={periods.baseline_start} onChange={(event) => setPeriods({ ...periods, baseline_start: event.target.value })} /></label><label>To<input type="date" value={periods.baseline_end} onChange={(event) => setPeriods({ ...periods, baseline_end: event.target.value })} /></label></fieldset>
           <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
@@ -44,7 +49,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
         <div className="satellite-controls">
           <div><span>SCADA reservoir level</span><strong>{scadaLevel}%</strong></div>
           <input type="range" min="20" max="100" value={scadaLevel} onChange={(event) => setScadaLevel(Number(event.target.value))} aria-label="SCADA reservoir level" />
-          <button type="button" className="button-primary" disabled={pending || polygon.length < 3} onClick={() => void analyze()}><ScanSearch size={15} />{pending ? "Analyzing imagery…" : "Analyze selected area"}</button>
+          <button type="button" className="button-primary" disabled={pending || (draftPolygon ?? polygon).length < 3} onClick={() => void analyze()}><ScanSearch size={15} />{pending ? "Analyzing imagery…" : draftPolygon ? "Analyze drawn area" : "Analyze selected area"}</button>
         </div>
       </section>
       <aside className="satellite-side">
@@ -55,7 +60,7 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
           <div className="satellite-result-head">{result.mismatch_detected ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}<div><span>{result.mismatch_detected ? "Mismatch detected" : "Evidence consistent"}</span><strong>{result.change_percent > 0 ? "+" : ""}{result.change_percent}% water extent</strong></div></div>
           <div className="satellite-metrics"><div><span>Baseline</span><strong>{result.baseline_water_km2} km²</strong></div><div><span>Current</span><strong>{result.current_water_km2} km²</strong></div><div><span>SCADA</span><strong>{result.scada_level_percent}%</strong></div></div>
           <p>{result.observation}</p><div className="satellite-recommendation"><Sparkles size={14} /><ul>{result.recommendation.split(";").map((item) => item.trim()).filter(Boolean).slice(0, 3).map((item) => <li key={item}>{item}</li>)}</ul></div>
-          <small>{result.source === "earth-engine" ? "Earth Engine measurement" : "Deterministic demo measurement"} · {result.explanation_source === "gemini" ? "Gemini explanation" : "policy explanation"} · confidence {Math.round(result.confidence * 100)}%</small>
+          <small>{result.source === "earth-engine" ? "Earth Engine measurement" : "Deterministic demo measurement"} · {result.explanation_source === "gemini" ? "Gemini explanation" : "policy explanation"} · {analyzedVertices} submitted vertices · area {result.analysis_id.slice(4, 10)} · confidence {Math.round(result.confidence * 100)}%</small>
         </div>}
       </aside>
     </div>
