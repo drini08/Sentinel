@@ -5,6 +5,7 @@ import { Vector3 } from "three";
 import { PipeNetwork } from "./assets/PipeNetwork";
 import { ProcessAsset } from "./assets/ProcessAsset";
 import { Reservoir } from "./assets/Reservoir";
+import { FacilityDetails } from "./assets/FacilityDetails";
 import type { FacilitySnapshot } from "./types";
 
 type FacilityWorldProps = {
@@ -62,6 +63,7 @@ export function FacilityWorld({ snapshot, selectedId, alertAssetId, reducedMotio
           infiniteGrid={false}
         />
         <PipeNetwork snapshot={snapshot} reducedMotion={reducedMotion} alertAssetId={alertAssetId} />
+        <FacilityDetails />
         {snapshot.assets.map((asset) =>
           asset.asset_type === "reservoir" ? (
             <Reservoir
