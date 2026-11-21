@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .models import AssetCommand, FacilityAsset, FacilitySnapshot
 from .topology import build_facility_assets, build_facility_connections
+from ..scada import SyntheticScadaSystem
 
 
 class FacilityAssetNotFound(KeyError):
@@ -21,8 +22,11 @@ class FacilityEngine:
         self._revision = 1
         self._assets = build_facility_assets()
         self._connections = build_facility_connections()
+        self._scada = SyntheticScadaSystem()
 
     def snapshot(self) -> FacilitySnapshot:
+        self._scada.sample(self._assets)
+        self._synchronize_all_connections()
         return FacilitySnapshot(
             revision=self._revision,
             assets=[asset.model_copy(deep=True) for asset in self._assets.values()],
@@ -141,6 +145,10 @@ class FacilityEngine:
                 connection.flow_m3s = 0.0
             elif asset.asset_type == "reservoir":
                 connection.flow_m3s = float(asset.metrics["outflow_m3s"])
+
+    def _synchronize_all_connections(self) -> None:
+        for asset in self._assets.values():
+            self._synchronize_connections(asset)
 
     @staticmethod
     def _number(value: str | float | bool | None, action: str) -> float:

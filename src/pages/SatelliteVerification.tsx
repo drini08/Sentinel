@@ -4,21 +4,61 @@ import { PageHeader, Status } from "../components/UI";
 import { satelliteApi } from "../satellite/api";
 import { SatelliteMap } from "../satellite/SatelliteMap";
 import type { Coordinate, SatelliteAnalysisResult, SatelliteApi, SatelliteStatus } from "../satellite/types";
+import { facilityApi } from "../facility/api";
+import type { FacilityApi, FacilitySnapshot } from "../facility/types";
 
-export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteApi }) {
+type ScadaReading = {
+  level: number;
+  inflow: number;
+  outflow: number;
+  pressure: number;
+  turbidity: number;
+  pumpStatus: string;
+};
+
+function readingFromSnapshot(snapshot: FacilitySnapshot): ScadaReading | null {
+  const reservoir = snapshot.assets.find((asset) => asset.id === "reservoir-a");
+  const intake = snapshot.assets.find((asset) => asset.id === "raw-intake");
+  const pump = snapshot.assets.find((asset) => asset.id === "pump-station");
+  if (!reservoir || !intake || !pump) return null;
+  return {
+    level: Number(reservoir.metrics.level_percent),
+    inflow: Number(reservoir.metrics.inflow_m3s),
+    outflow: Number(reservoir.metrics.outflow_m3s),
+    pressure: Number(pump.metrics.pressure_bar),
+    turbidity: Number(intake.metrics.turbidity_ntu),
+    pumpStatus: pump.status,
+  };
+}
+
+export function SatelliteVerification({ api = satelliteApi, facilityApiClient = facilityApi }: { api?: SatelliteApi; facilityApiClient?: FacilityApi }) {
   const [polygon, setPolygon] = useState<Coordinate[]>([]);
   const [draftPolygon, setDraftPolygon] = useState<Coordinate[] | null>(null);
   const [status, setStatus] = useState<SatelliteStatus | null>(null);
   const [result, setResult] = useState<SatelliteAnalysisResult | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scadaLevel, setScadaLevel] = useState<number | "">("");
+  const [scada, setScada] = useState<ScadaReading | null>(null);
   const [analyzedVertices, setAnalyzedVertices] = useState(0);
   const [periods, setPeriods] = useState({
     baseline_start: "2025-08-01", baseline_end: "2025-11-22",
     current_start: "2026-08-01", current_end: "2026-11-22",
   });
   useEffect(() => { void api.getStatus().then(setStatus).catch(() => setStatus(null)); }, [api]);
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const reading = readingFromSnapshot(await facilityApiClient.getSnapshot());
+        if (active) setScada(reading);
+      } catch {
+        if (active) setScada(null);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 4000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [facilityApiClient]);
 
   const changePolygon = (next: Coordinate[]) => {
     setPolygon(next);
@@ -38,13 +78,13 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
     const selectedPolygon = draftPolygon ?? polygon;
     if (selectedPolygon.length < 3) { setError("Draw at least three polygon points."); return; }
     if (Object.values(periods).some((period) => !period)) { setError("Select both imagery periods."); return; }
-    if (scadaLevel === "") { setError("Enter the current SCADA reservoir level."); return; }
+    if (!scada) { setError("Synthetic SCADA telemetry is unavailable."); return; }
     setPending(true); setError(null);
     try {
       const analysis = await api.analyze({
         polygon: selectedPolygon,
         ...periods,
-        scada_level_percent: scadaLevel,
+        scada_level_percent: scada.level,
       });
       setResult(analysis);
       setAnalyzedVertices(selectedPolygon.length);
@@ -61,9 +101,20 @@ export function SatelliteVerification({ api = satelliteApi }: { api?: SatelliteA
           <fieldset><legend>Baseline imagery period</legend><label>From<input type="date" value={periods.baseline_start} onChange={(event) => setPeriods({ ...periods, baseline_start: event.target.value })} /></label><label>To<input type="date" value={periods.baseline_end} onChange={(event) => setPeriods({ ...periods, baseline_end: event.target.value })} /></label></fieldset>
           <fieldset><legend>Current imagery period</legend><label>From<input type="date" value={periods.current_start} onChange={(event) => setPeriods({ ...periods, current_start: event.target.value })} /></label><label>To<input type="date" value={periods.current_end} onChange={(event) => setPeriods({ ...periods, current_end: event.target.value })} /></label></fieldset>
         </div>
+        <div className="satellite-scada-panel">
+          <div className="satellite-scada-head"><span>Synthetic SCADA feed</span><strong>{scada ? "Live" : "Connecting"}</strong></div>
+          <div className="satellite-scada-grid">
+            <div><span>Reservoir level</span><strong>{scada ? `${scada.level}%` : "—"}</strong></div>
+            <div><span>Inflow</span><strong>{scada ? `${scada.inflow} m³/s` : "—"}</strong></div>
+            <div><span>Outflow</span><strong>{scada ? `${scada.outflow} m³/s` : "—"}</strong></div>
+            <div><span>Pressure</span><strong>{scada ? `${scada.pressure} bar` : "—"}</strong></div>
+            <div><span>Turbidity</span><strong>{scada ? `${scada.turbidity} NTU` : "—"}</strong></div>
+            <div><span>Pumps</span><strong>{scada?.pumpStatus ?? "—"}</strong></div>
+          </div>
+        </div>
         <div className="satellite-controls">
-          <label><span>SCADA reservoir level</span><input type="number" min="0" max="100" value={scadaLevel} placeholder="Enter SCADA %" onChange={(event) => setScadaLevel(event.target.value === "" ? "" : Number(event.target.value))} aria-label="SCADA reservoir level" /></label>
-          <button type="button" className="button-primary" disabled={pending || status?.mode !== "live" || (draftPolygon ?? polygon).length < 3 || scadaLevel === "" || Object.values(periods).some((period) => !period)} onClick={() => void analyze()}><ScanSearch size={15} />{pending ? "Analyzing imagery…" : draftPolygon ? "Analyze drawn area" : "Analyze selected area"}</button>
+          <div><span>SCADA comparison input</span><strong>{scada ? `${scada.level}% automatically synchronized` : "Waiting for telemetry"}</strong></div>
+          <button type="button" className="button-primary" disabled={pending || status?.mode !== "live" || (draftPolygon ?? polygon).length < 3 || !scada || Object.values(periods).some((period) => !period)} onClick={() => void analyze()}><ScanSearch size={15} />{pending ? "Analyzing imagery…" : draftPolygon ? "Analyze drawn area" : "Analyze selected area"}</button>
         </div>
       </section>
       <aside className="satellite-side">
