@@ -132,7 +132,7 @@ class SatelliteService:
             water = image.normalizedDifference(["B3", "B8"]).gt(0.12)
             area = ee.Image.pixelArea().updateMask(water).reduceRegion(
                 reducer=ee.Reducer.sum(), geometry=geometry, scale=20, maxPixels=10_000_000
-            ).get("area")
+            ).get("area", 0)
             return float(ee.Number(area).getInfo() or 0) / 1_000_000
 
         baseline_image = composite(request.baseline_start.isoformat(), request.baseline_end.isoformat())
