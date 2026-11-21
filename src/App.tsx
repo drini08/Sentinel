@@ -22,8 +22,8 @@ export function App() {
       <Route path="attack" element={<AttackConsole />} />
       <Route element={<Shell />}>
         <Route index element={<Overview />} />
-        <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Digital Twin", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Services & Health", "/facility/services"]]} />}>
-          <Route index element={<Suspense fallback={<div className="facility-route-loading">Loading digital twin…</div>}><Facility /></Suspense>} />
+        <Route path="facility" element={<SectionLayout label="Facility" tabs={[["Infrastructure View", "/facility", true], ["Satellite Intelligence", "/facility/satellite"], ["Services & Health", "/facility/services"]]} />}>
+          <Route index element={<Suspense fallback={<div className="facility-route-loading">Loading infrastructure view…</div>}><Facility /></Suspense>} />
           <Route path="satellite" element={<SatelliteVerification />} />
           <Route path="services" element={<Services />} />
         </Route>

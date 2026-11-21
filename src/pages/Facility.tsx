@@ -47,7 +47,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
     <div className="animate-enter facility-page">
       <PageHeader
         eyebrow="Dardania Water Services"
-        title="Facility Digital Twin"
+        title="Infrastructure View"
         description="Live SCADA operations, protected commands, and explainable containment across the complete treatment and distribution facility."
         action={
           <div className="flex flex-wrap gap-3">

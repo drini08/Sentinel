@@ -21,7 +21,7 @@ export function FacilityScene({
   onSelect,
 }: FacilitySceneProps) {
   return (
-    <div className="facility-canvas" role="img" aria-label="Interactive 3D digital twin of Dardania Water Services">
+    <div className="facility-canvas" role="img" aria-label="Interactive 3D infrastructure view of Dardania Water Services">
       <FacilityAssetIndex assets={snapshot.assets} selectedId={selectedId} onSelect={onSelect} />
       <Canvas
         dpr={[1, 1.5]}

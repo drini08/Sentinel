@@ -4,7 +4,7 @@ AI-assisted cybersecurity for critical infrastructure. SENTINEL detects suspicio
 
 ## Run the complete demo
 
-SENTINEL includes a React operator console, an interactive 3D water-facility digital twin, and a modular FastAPI security core with deterministic SCADA state. The complete lifecycle runs locally: monitor → detect → assess → contain → verify → recover.
+SENTINEL includes a React operator console, an interactive 3D water-facility infrastructure view, and a modular FastAPI security core with deterministic SCADA state. The complete lifecycle runs locally: monitor → detect → assess → contain → verify → recover.
 
 Install dependencies once:
 
@@ -28,7 +28,7 @@ npm.cmd run dev
 
 Open `http://127.0.0.1:5173/`.
 
-The compact top navigation is grouped into Overview, Facility, Security, and Demo. Section tabs expose the detailed views without crowding the global navigation. Facility includes the digital twin, services, and Satellite Verification; Security groups threats, incidents, defense, policies, and logs.
+The compact top navigation is grouped into Overview, Facility, Security, and Demo. Section tabs expose the detailed views without crowding the global navigation. Facility includes the infrastructure view, services, and Satellite Intelligence; Security groups threats, incidents, defense, policies, and logs.
 
 Satellite Verification lets an operator draw a reservoir polygon, compare water extent across two date ranges, and check the result against a SCADA level. It uses Sentinel-2 imagery through Google Earth Engine when `EARTH_ENGINE_PROJECT` and Google application credentials are configured. `GEMINI_API_KEY` enables a short operator explanation using the model selected by `GEMINI_MODEL`. Without cloud credentials, the same workflow runs with deterministic demo evidence, making it safe to present offline. Google AI Studio can be used to refine the Gemini prompt, but is not a runtime dependency.
 
