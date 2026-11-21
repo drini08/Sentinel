@@ -157,7 +157,9 @@ class SatelliteService:
             baseline_image_url = baseline_image.getThumbURL(visualization)
             current_image_url = current_image.getThumbURL(visualization)
         except Exception as error:
-            raise SatelliteLiveError("Earth Engine thumbnail generation failed") from error
+            print(f"Earth Engine thumbnail unavailable: {type(error).__name__}", flush=True)
+            baseline_image_url = None
+            current_image_url = None
         return {
             "baseline_water_km2": round(baseline, 2),
             "current_water_km2": round(current, 2),
