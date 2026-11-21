@@ -105,6 +105,21 @@ describe("Facility page", () => {
     expect(await screen.findByText("Attack contained. Legitimate operations continued.")).toBeInTheDocument();
   });
 
+  it("clears an active jury alert when the operator resets the facility", async () => {
+    const juryApi: JuryApi = {
+      trigger: vi.fn(),
+      getStatus: vi.fn().mockResolvedValue({ active_run: null }),
+      reset: vi.fn().mockResolvedValue({ active_run: null }),
+    };
+    const api = createApi();
+    render(<Facility api={api} juryApiClient={juryApi} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reset facility" }));
+
+    await waitFor(() => expect(api.reset).toHaveBeenCalledTimes(1));
+    expect(juryApi.reset).toHaveBeenCalledTimes(1);
+  });
+
   it("shows a jury-triggered attack on the operator facility screen", async () => {
     const juryApi: JuryApi = {
       trigger: vi.fn(),

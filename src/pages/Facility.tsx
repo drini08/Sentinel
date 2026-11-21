@@ -28,6 +28,22 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
     ? facility.lastCommand.asset.id
     : juryRun?.affected_asset_ids[0] ?? null;
 
+  const resetFacility = async () => {
+    await facility.reset();
+    // A facility reset is also the operator's explicit end to the live jury demo.
+    // Clear its persisted alert so normal assets return to their operational state.
+    if (juryApiClient.reset) {
+      try {
+        const status = await juryApiClient.reset();
+        setJuryRun(status.active_run);
+      } catch {
+        setJuryRun(null);
+      }
+    } else {
+      setJuryRun(null);
+    }
+  };
+
   return (
     <div className="animate-enter facility-page">
       <PageHeader
@@ -36,7 +52,7 @@ export function Facility({ api, juryApiClient = juryApi }: { api?: FacilityApi; 
         description="Live SCADA operations, protected commands, and explainable containment across the complete treatment and distribution facility."
         action={
           <div className="flex flex-wrap gap-3">
-            <button type="button" className="button-secondary" disabled={facility.commandPending} onClick={() => void facility.reset()}>
+            <button type="button" className="button-secondary" disabled={facility.commandPending} onClick={() => void resetFacility()}>
               <RotateCcw size={14} />Reset facility
             </button>
             <button type="button" className="button-primary" disabled={facility.commandPending} onClick={() => void facility.runScenario()} aria-label="Run compromised operator">
