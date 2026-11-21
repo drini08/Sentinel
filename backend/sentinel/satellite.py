@@ -147,7 +147,13 @@ class SatelliteService:
             raise SatelliteLiveError("Earth Engine water-mask reduction failed") from error
         if baseline <= 0:
             raise ValueError("No water pixels were available in the baseline range")
-        visualization = {"bands": ["B4", "B3", "B2"], "min": 0, "max": 3000, "dimensions": 900, "region": geometry}
+        visualization = {
+            "bands": ["B4", "B3", "B2"],
+            "min": 0,
+            "max": 3000,
+            "dimensions": 900,
+            "region": {"type": "Polygon", "coordinates": [request.polygon]},
+        }
         try:
             baseline_image_url = baseline_image.getThumbURL(visualization)
             current_image_url = current_image.getThumbURL(visualization)
